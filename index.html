@@ -242,10 +242,16 @@
     </div>
 
     <div class="card">
-      <button onclick="descargarWord()" style="background:#4fd1a5;color:#06251c">
-        📄 Descargar manual SES-10
-      </button>
-    </div>
+
+  <button onclick="verPDF()" style="background:#4fd1a5;color:#06251c;margin-bottom:10px">
+    👁 Ver manual SES-10 online
+  </button>
+
+  <button onclick="descargarPDF()" style="background:#ff9f5a;color:#3a1c00">
+    ⬇ Descargar manual SES-10
+  </button>
+
+</div>
 
     <div class="results" id="results">
       <div class="result az">
@@ -304,9 +310,19 @@
     const SAT_ORIGEN = -61;   // Amazonas 2/3, 61° Oeste
     const SAT_DESTINO = -67;  // SES-10, 67° Oeste
 
-    function descargarWord() {
-      window.open("Manual_SES10.pdf", "_blank");
-    }
+    function verPDF(){
+  window.open("Manual_SES10.pdf","_blank");
+}
+
+
+function descargarPDF(){
+
+  const link = document.createElement("a");
+  link.href = "Manual_SES10.pdf";
+  link.download = "Manual_SES10.pdf";
+  link.click();
+
+}
     function pointing(lat, lon, satLon) {
       const Re = 6378, Rs = 42164;
       const toRad = d => d * Math.PI / 180;
