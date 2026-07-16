@@ -462,7 +462,7 @@ verificarBrujula();
       sensorDetectado = true;
       const heading = rawHeading(e);
       if (heading === null) return;
-
+      sensorDetectado = true;
       if (capturing) {
         startHeading = heading;
         capturing = false;
@@ -513,16 +513,21 @@ verificarBrujula();
     }
     function verificarBrujula(){
 
+    sensorDetectado = false;
+
+    document.getElementById("markBtn").style.display = "block";
+    document.getElementById("noCompass").style.display = "none";
+
     setTimeout(()=>{
 
-        if(!sensorDetectado){
-
-            document.getElementById("markBtn").style.display="none";
-            document.getElementById("noCompass").style.display="block";
-
+        if(sensorDetectado){
+            return;
         }
 
-    },3000);
+        document.getElementById("markBtn").style.display="none";
+        document.getElementById("noCompass").style.display="block";
+
+    },2000);
 
 }
     document.getElementById('markBtn').addEventListener('click', () => {
