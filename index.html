@@ -312,7 +312,7 @@
   <script>
     const SAT_ORIGEN = -61;   // Amazonas 2/3, 61° Oeste
     const SAT_DESTINO = -67;  // SES-10, 67° Oeste
-
+    let sensorDetectado = false;
  function verPDF() {
   window.open("SES_10.pdf", "_blank");
 }
@@ -455,6 +455,7 @@ function descargarPDF() {
     }
 
     function handleOrientation(e) {
+      sensorDetectado = true;
       const heading = rawHeading(e);
       if (heading === null) return;
 
@@ -508,21 +509,16 @@ function descargarPDF() {
     }
     function verificarBrujula(){
 
-  const btn = document.getElementById("markBtn");
-  const aviso = document.getElementById("noCompass");
+    setTimeout(()=>{
 
-  if(!window.DeviceOrientationEvent){
+        if(!sensorDetectado){
 
-    btn.style.display = "none";
-    aviso.style.display = "block";
+            document.getElementById("markBtn").style.display="none";
+            document.getElementById("noCompass").style.display="block";
 
-    return false;
-  }
+        }
 
-  btn.style.display = "block";
-  aviso.style.display = "none";
-
-  return true;
+    },3000);
 
 }
     document.getElementById('markBtn').addEventListener('click', () => {
