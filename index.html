@@ -303,10 +303,12 @@
       </div>
       <p class="note">Apoyá el celular sobre el plato (o alineado con él) al tocar "Marcar", y dejalo firme mientras lo
         movés.</p>
-    </div>
-    <div id="noCompass" style="display:none;margin-top:15px;padding:14px;border-radius:10px;background:#3b1d1d;color:#ffd6d6;font-size:14px;">
+
+      <div id="noCompass" style="display:none;margin-top:15px;padding:14px;border-radius:10px;background:#3b1d1d;color:#ffd6d6;font-size:14px;">
 ❌ Este dispositivo no tiene brújula o el navegador no permite acceder al sensor de orientación.
-</div>
+</div>  
+    </div>
+    
   </div>
 
   <script>
@@ -394,6 +396,8 @@ function descargarPDF() {
       document.getElementById('liveTarget').innerHTML = `Objetivo: <b>${Math.abs(diffAz).toFixed(1)}°</b> ${dirTxt}`;
       document.getElementById('compassCard').style.display = 'block';
       resetLive();
+      ensureListening();
+verificarBrujula();
     }
 
     document.getElementById('locBtn').addEventListener('click', () => {
@@ -547,6 +551,7 @@ function descargarPDF() {
         liveTarget.textContent = 'Este navegador no tiene sensor de orientación disponible.';
       }
     });
+    ensureListening();
     verificarBrujula();
   </script>
 </body>
