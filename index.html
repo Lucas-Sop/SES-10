@@ -193,6 +193,12 @@
     <div id="status"></div>
   </div>
 
+  <div class="card">
+  <button onclick="descargarWord()" style="background:#4fd1a5;color:#06251c">
+    📄 Descargar manual SES-10
+  </button>
+</div>
+
   <div class="results" id="results">
     <div class="result az">
       <div class="label">Azimut (horizontal)</div>
@@ -247,6 +253,9 @@
 const SAT_ORIGEN = -61;   // Amazonas 2/3, 61° Oeste
 const SAT_DESTINO = -67;  // SES-10, 67° Oeste
 
+function descargarWord(){
+  window.open("Manual_SES10.docx","_blank");
+}
 function pointing(lat, lon, satLon){
   const Re = 6378, Rs = 42164;
   const toRad = d => d*Math.PI/180;
