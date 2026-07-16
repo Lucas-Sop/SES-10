@@ -304,6 +304,9 @@
       <p class="note">Apoyá el celular sobre el plato (o alineado con él) al tocar "Marcar", y dejalo firme mientras lo
         movés.</p>
     </div>
+    <div id="noCompass" style="display:none;margin-top:15px;padding:14px;border-radius:10px;background:#3b1d1d;color:#ffd6d6;font-size:14px;">
+❌ Este dispositivo no tiene brújula o el navegador no permite acceder al sensor de orientación.
+</div>
   </div>
 
   <script>
@@ -372,14 +375,14 @@ function descargarPDF() {
       document.getElementById('azVal').textContent = Math.abs(diffAz).toFixed(1) + '°';
       document.getElementById('azDir').textContent = diffAz < 0 ? '← Izquierda' : 'Derecha →';
 
-      document.getElementById('elVal').textContent = Math.abs(diffEl).toFixed(1) + '°';
+      document.getElementById('elVal').textContent = Math.abs(diffEl).toFixed(2) + '°';
       document.getElementById('elDir').textContent = diffEl >= 0 ? '↑ Subir' : '↓ Bajar';
       // Datos absolutos del SES-10
       document.getElementById('sesAz').textContent =
         destino.az.toFixed(1) + "°";
 
       document.getElementById('sesEl').textContent =
-        destino.el.toFixed(1) + "°";
+      destino.el.toFixed(2) + "°";
 
       document.getElementById('sesMove').textContent =
         Math.abs(diffAz).toFixed(1) +
@@ -503,7 +506,25 @@ function descargarPDF() {
       }
       listening = true;
     }
+    function verificarBrujula(){
 
+  const btn = document.getElementById("markBtn");
+  const aviso = document.getElementById("noCompass");
+
+  if(!window.DeviceOrientationEvent){
+
+    btn.style.display = "none";
+    aviso.style.display = "block";
+
+    return false;
+  }
+
+  btn.style.display = "block";
+  aviso.style.display = "none";
+
+  return true;
+
+}
     document.getElementById('markBtn').addEventListener('click', () => {
       const liveTarget = document.getElementById('liveTarget');
 
@@ -530,6 +551,7 @@ function descargarPDF() {
         liveTarget.textContent = 'Este navegador no tiene sensor de orientación disponible.';
       }
     });
+    verificarBrujula();
   </script>
 </body>
 
