@@ -310,18 +310,15 @@
     const SAT_ORIGEN = -61;   // Amazonas 2/3, 61° Oeste
     const SAT_DESTINO = -67;  // SES-10, 67° Oeste
 
-    function verPDF(){
-  window.open("Manual_SES10.pdf","_blank");
+ function verPDF() {
+  window.open("SES_10.pdf", "_blank");
 }
 
-
-function descargarPDF(){
-
+function descargarPDF() {
   const link = document.createElement("a");
-  link.href = "Manual_SES10.pdf";
-  link.download = "Manual_SES10.pdf";
+  link.href = "SES_10.pdf";
+  link.download = "SES_10.pdf";
   link.click();
-
 }
     function pointing(lat, lon, satLon) {
       const Re = 6378, Rs = 42164;
