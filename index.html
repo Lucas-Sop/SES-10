@@ -207,6 +207,29 @@
     <p class="note">Izquierda/derecha visto parado frente al plato, mirando hacia el cielo donde apunta.</p>
   </div>
 
+  <div class="result">
+  <div class="label">Datos SES-10</div>
+
+  <div style="margin-top:12px;text-align:left">
+
+    <div>
+      <span style="color:var(--dim)">Azimut SES-10:</span>
+      <b id="sesAz">–</b>
+    </div>
+
+    <div style="margin-top:8px">
+      <span style="color:var(--dim)">Elevación SES-10:</span>
+      <b id="sesEl">–</b>
+    </div>
+
+    <div style="margin-top:8px">
+      <span style="color:var(--dim)">Movimiento desde Amazonas:</span>
+      <b id="sesMove">–</b>
+    </div>
+
+  </div>
+</div>
+
   <div class="compass-card" id="compassCard" style="display:none">
     <button id="markBtn">📍 Marcar acá = Amazonas 2/3</button>
     <div class="live-target" id="liveTarget"></div>
@@ -278,7 +301,16 @@ function calcular(lat, lon){
 
   document.getElementById('elVal').textContent = Math.abs(diffEl).toFixed(1) + '°';
   document.getElementById('elDir').textContent = diffEl >= 0 ? '↑ Subir' : '↓ Bajar';
+// Datos absolutos del SES-10
+document.getElementById('sesAz').textContent =
+  destino.az.toFixed(1) + "°";
 
+document.getElementById('sesEl').textContent =
+  destino.el.toFixed(1) + "°";
+
+document.getElementById('sesMove').textContent =
+  Math.abs(diffAz).toFixed(1) +
+  (diffAz < 0 ? "° ← izquierda" : "° → derecha");
   results.style.display = 'block';
 
   targetDiff = diffAz;
