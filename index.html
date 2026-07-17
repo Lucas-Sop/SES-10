@@ -4,7 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Amazonas 2/3 → SES-10</title>
+  <title>Intelsat 23 → SES-10</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     :root {
       --bg: #0b1220;
@@ -50,7 +52,7 @@
     .sub {
       color: var(--dim);
       font-size: 13px;
-      margin: 0 0 22px;
+      margin: 0 0 18px;
     }
 
     .card {
@@ -119,6 +121,11 @@
       display: none;
     }
 
+    .results-row {
+      display: flex;
+      gap: 10px;
+    }
+
     .result {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -126,6 +133,13 @@
       padding: 18px;
       margin-bottom: 14px;
       text-align: center;
+    }
+
+    .results-row .result {
+      flex: 1;
+      min-width: 0;
+      padding: 14px 8px;
+      margin-bottom: 0;
     }
 
     .result .label {
@@ -136,11 +150,19 @@
       margin-bottom: 8px;
     }
 
+    .results-row .result .label {
+      font-size: 10.5px;
+    }
+
     .result .big {
       font-size: 38px;
       font-weight: 800;
       line-height: 1;
       letter-spacing: -.5px;
+    }
+
+    .results-row .result .big {
+      font-size: 26px;
     }
 
     .result .dir {
@@ -150,8 +172,81 @@
       color: var(--accent);
     }
 
+    .results-row .result .dir {
+      font-size: 13px;
+    }
+
     .result.el .dir {
       color: var(--accent2);
+    }
+
+    .sat-stats-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .sat-stat {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sat-stat svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .sat-stat-label {
+      font-size: 10.5px;
+      color: var(--dim);
+      letter-spacing: .3px;
+    }
+
+    .sat-stat-value {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .skew-row {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+      justify-content: center;
+    }
+
+    .skew-input {
+      width: 54px;
+      background: #0d1526;
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 4px;
+      font-size: 15px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    /* ---------- Mapa / coordenadas manuales ---------- */
+    #mapPanel {
+      display: none;
+    }
+
+    #siteMap {
+      height: 210px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      background: #0d1526;
+    }
+
+    .leaflet-container {
+      background: #0d1526;
+      font-family: inherit;
     }
 
     .note {
@@ -224,6 +319,40 @@
       min-height: 20px;
     }
 
+    .sensor-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13.5px;
+      margin-bottom: 9px;
+      color: var(--dim);
+    }
+
+    .sensor-row:last-of-type {
+      margin-bottom: 0;
+    }
+
+    .sensor-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #3a4560;
+      flex: 0 0 9px;
+      transition: background .2s ease, box-shadow .2s ease;
+    }
+
+    .sensor-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    .sensor-heading {
+      text-align: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
     #noCompass {
       display: none;
       margin-top: 15px;
@@ -235,99 +364,369 @@
       text-align: left;
       line-height: 1.5;
     }
+
+    /* ---------- Tabs ---------- */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 16px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      flex: 0 0 auto;
+      width: auto;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--dim);
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #06251c;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .goto-btn {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    /* ---------- Guías paso a paso ---------- */
+    .step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .step:last-child {
+      margin-bottom: 4px;
+    }
+
+    .step-num {
+      flex: 0 0 26px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #06251c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      margin-top: 1px;
+    }
+
+    .step-content h3 {
+      margin: 0 0 4px;
+      font-size: 14.5px;
+      font-weight: 700;
+    }
+
+    .step-content p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--dim);
+      line-height: 1.55;
+    }
+
+    .step-illustration {
+      width: 100%;
+      margin: 10px 0 4px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0d1526;
+      border: 1px solid var(--line);
+    }
+
+    .step-illustration svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .warn-box {
+      background: #3b1d1d;
+      color: #ffd6d6;
+      font-size: 12.5px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-top: 6px;
+      margin-bottom: 14px;
+      line-height: 1.55;
+    }
+
+    .tip-box {
+      background: #122a22;
+      color: #bdf5dd;
+      font-size: 12.5px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-top: 6px;
+      margin-bottom: 14px;
+      line-height: 1.55;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 12px;
+    }
+
+    .section-sub {
+      font-size: 12.5px;
+      color: var(--dim);
+      margin: -8px 0 16px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <h1>Amazonas 2/3 → SES-10</h1>
-    <p class="sub">Cuánto mover el plato para pasar de un satélite a otro</p>
+    <h1>Intelsat 23 → SES-10</h1>
+    <p class="sub">Guía completa para mover el plato de Intelsat 23 a SES-10</p>
 
-    <div class="card">
-      <button id="locBtn">Usar mi ubicación</button>
-      <div class="manual">
-        <input id="lat" type="number" step="any" placeholder="Latitud">
-        <input id="lon" type="number" step="any" placeholder="Longitud">
-        <button id="calcBtn">Calcular</button>
-      </div>
-      <div id="status"></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="calc">📍 Calculadora</button>
+      <button class="tab-btn" data-tab="live">🧭 Ajuste en vivo</button>
+      <button class="tab-btn" data-tab="manual">📄 Manual SES-10</button>
     </div>
 
-    <div class="card">
+    <!-- ===================== TAB: CALCULADORA ===================== -->
+    <div class="tab-panel active" id="tab-calc">
 
-      <button onclick="verPDF()" style="background:#4fd1a5;color:#06251c;margin-bottom:10px">
-        👁 Ver manual SES-10 online
-      </button>
-
-      <button onclick="descargarPDF()" style="background:#ff9f5a;color:#3a1c00">
-        ⬇ Descargar manual SES-10
-      </button>
-
-    </div>
-
-    <div class="results" id="results">
-      <div class="result az">
-        <div class="label">Azimut (horizontal)</div>
-        <div class="big" id="azVal">–</div>
-        <div class="dir" id="azDir">–</div>
+      <div class="card">
+        <button id="locBtn">📍 Usar mi ubicación</button>
+        <div id="status"></div>
       </div>
-      <div class="result el">
-        <div class="label">Elevación (vertical)</div>
-        <div class="big" id="elVal">–</div>
-        <div class="dir" id="elDir">–</div>
+
+      <div class="card" id="mapPanel">
+        <p class="section-title" style="font-size:13.5px;margin-bottom:2px">Coordenadas y mapa</p>
+        <p class="section-sub" style="margin-top:0">Escribí la latitud y longitud, o tocá el mapa para marcar el punto.
+          El pin se puede arrastrar.</p>
+        <div class="manual">
+          <input id="lat" type="number" step="any" placeholder="Latitud">
+          <input id="lon" type="number" step="any" placeholder="Longitud">
+        </div>
+        <div id="siteMap"></div>
+        <p class="note" id="mapNote" style="margin-top:8px">La línea celeste marca hacia dónde apunta el azimut de
+          SES-10 desde ese punto.</p>
+        <button id="calcBtn" style="margin-top:12px">Calcular</button>
       </div>
-      <p class="note">Izquierda/derecha visto parado frente al plato, mirando hacia el cielo donde apunta.</p>
-    </div>
 
-    <div class="result">
-      <div class="label">Datos SES-10</div>
+      <div class="results" id="results">
+        <div class="results-row">
+          <div class="result az">
+            <div class="label">Azimut (horizontal)</div>
+            <div class="big" id="azVal">–</div>
+            <div class="dir" id="azDir">–</div>
+          </div>
+          <div class="result el">
+            <div class="label">Elevación (vertical)</div>
+            <div class="big" id="elVal">–</div>
+            <div class="dir" id="elDir">–</div>
+          </div>
+        </div>
+        <p class="note">Izquierda/derecha visto parado frente al plato, mirando hacia el cielo donde apunta.</p>
+      </div>
 
-      <div style="margin-top:12px;text-align:left">
+      <div class="result" id="sesDataCard" style="display:none">
+        <div class="label">Datos SES-10</div>
 
-        <div>
-          <span style="color:var(--dim)">Azimut SES-10:</span>
-          <b id="sesAz">–</b>
+        <div class="sat-stats-row">
+          <div class="sat-stat">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 10 A14 14 0 1 1 10 30" stroke="var(--dim)" stroke-width="2" stroke-linecap="round" />
+              <path d="M8 6 L12 10 L8 14" stroke="var(--dim)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M32 26 L28 30 L32 34" stroke="var(--dim)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="20" cy="20" r="2" fill="var(--accent)" />
+            </svg>
+            <div class="sat-stat-label">azimut</div>
+            <div class="sat-stat-value" id="sesAz">–</div>
+          </div>
+
+          <div class="sat-stat">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="10" y1="32" x2="10" y2="10" stroke="var(--dim)" stroke-width="2" stroke-linecap="round" />
+              <path d="M10 32 A20 20 0 0 1 30 12" stroke="var(--dim)" stroke-width="2" fill="none" stroke-linecap="round" />
+              <path d="M26 8 L30 12 L26 16" stroke="var(--dim)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="10" cy="32" r="2" fill="var(--accent2)" />
+            </svg>
+            <div class="sat-stat-label">elevación</div>
+            <div class="sat-stat-value" id="sesEl">–</div>
+          </div>
+
+          <div class="sat-stat">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="20" cy="20" r="12" stroke="var(--dim)" stroke-width="2" />
+              <line x1="20" y1="4" x2="20" y2="10" stroke="var(--dim)" stroke-width="2" stroke-linecap="round" />
+              <line x1="20" y1="30" x2="20" y2="36" stroke="var(--dim)" stroke-width="2" stroke-linecap="round" />
+              <line x1="4" y1="20" x2="10" y2="20" stroke="var(--dim)" stroke-width="2" stroke-linecap="round" />
+              <line x1="30" y1="20" x2="36" y2="20" stroke="var(--dim)" stroke-width="2" stroke-linecap="round" />
+              <circle cx="24" cy="15" r="3" fill="#ff5a5a" />
+            </svg>
+            <div class="sat-stat-label">sesgo inb</div>
+            <div class="skew-row">
+              <input id="sesSkew" class="skew-input" type="number" step="0.1" placeholder="-4.3">
+              <span style="font-size:15px;font-weight:800">°</span>
+            </div>
+          </div>
         </div>
 
-        <div style="margin-top:8px">
-          <span style="color:var(--dim)">Elevación SES-10:</span>
-          <b id="sesEl">–</b>
-        </div>
+        <p class="note" style="margin-top:8px">El sesgo (skew) depende del LNB de tu equipo: escribilo a mano según la
+          ficha técnica de tu instalación.</p>
 
-        <div style="margin-top:8px">
-          <span style="color:var(--dim)">Movimiento desde Amazonas:</span>
+        <div style="margin-top:6px;text-align:left">
+          <span style="color:var(--dim)">Movimiento desde Intelsat 23:</span>
           <b id="sesMove">–</b>
         </div>
 
+        <button class="goto-btn" style="margin-top:14px" onclick="switchTab('live')">🧭 Ir al ajuste en vivo</button>
       </div>
+
     </div>
 
-    <div class="compass-card" id="compassCard" style="display:none">
-      <button id="markBtn">📍 Marcar acá = Amazonas 2/3</button>
-      <div class="live-target" id="liveTarget"></div>
+    <!-- ===================== TAB: AJUSTE EN VIVO ===================== -->
+    <div class="tab-panel" id="tab-live">
 
-      <div id="liveBox" style="display:none">
-        <div class="live-big" id="liveMoved">0.0°</div>
-        <div class="bar-track">
-          <div class="bar-fill" id="liveBar"></div>
+      <div class="card" id="sensorsCard">
+        <p class="section-title" style="text-align:left;font-size:13.5px;margin-bottom:12px">Sensores de la brújula</p>
+        <div class="sensor-row">
+          <span class="sensor-dot" id="dotAccel"></span> Acelerómetro
         </div>
-        <div class="live-status" id="liveStatus">Empezá a mover el plato despacio hacia la izquierda</div>
+        <div class="sensor-row">
+          <span class="sensor-dot" id="dotMag"></span> Magnetómetro
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-dot" id="dotGyro"></span> Giroscopio
+        </div>
+        <div class="sensor-heading">
+          <div class="label">brújula</div>
+          <div class="live-big" id="sensorHeading" style="font-size:28px">–</div>
+        </div>
       </div>
-      <p class="note">Apoyá el celular sobre el plato (o alineado con él) al tocar "Marcar", y dejalo firme mientras lo
-        movés.</p>
 
-      <div id="noCompass">
-        ❌ Este dispositivo no tiene brújula o el navegador no permite acceder al sensor de orientación.
+      <div class="compass-card" id="compassCard">
+        <p class="section-title" style="text-align:left">Ajuste en vivo con la brújula del celular</p>
+        <p class="section-sub" style="text-align:left">Primero calculá el movimiento en la pestaña "Calculadora". Después
+          volvé acá para guiarte en tiempo real mientras girás el plato.</p>
+
+        <p class="section-title" style="text-align:left;font-size:13.5px;margin-top:6px">Cómo alinear el celular antes
+          de marcar</p>
+        <div class="step-illustration">
+          <svg viewBox="0 0 380 230" xmlns="http://www.w3.org/2000/svg">
+            <rect width="380" height="230" fill="#0d1526"/>
+
+            <!-- título -->
+            <text x="190" y="22" fill="#8a96ab" font-size="10.5" font-family="sans-serif" text-anchor="middle">vista desde arriba</text>
+
+            <!-- anillo de referencia (brújula) -->
+            <circle cx="210" cy="150" r="98" fill="none" stroke="#25334d" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <text x="210" y="46" fill="#8a96ab" font-size="10" font-family="sans-serif" text-anchor="middle">N</text>
+
+            <!-- pie / mástil del soporte, visto desde arriba -->
+            <circle cx="150" cy="150" r="8" fill="#324062" stroke="#25334d" stroke-width="2"/>
+
+            <!-- plato (VSAT) visto desde arriba, con flecha hacia el satélite -->
+            <g transform="translate(150,150) rotate(-35)">
+              <ellipse cx="0" cy="0" rx="50" ry="32" fill="#4a5568" stroke="#5b6b8c" stroke-width="2"/>
+              <line x1="0" y1="0" x2="0" y2="-92" stroke="var(--accent2)" stroke-width="3"/>
+              <path d="M-7,-85 L0,-97 L7,-85 Z" fill="var(--accent2)"/>
+            </g>
+            <text x="103" y="202" fill="var(--accent2)" font-size="10.5" font-family="sans-serif" font-weight="700">Plato (VSAT)</text>
+
+            <!-- celular apoyado sobre el soporte, mismo sentido que el plato -->
+            <g transform="translate(272,150) rotate(-35)">
+              <rect x="-19" y="-40" width="38" height="80" rx="6" fill="#182338" stroke="var(--accent)" stroke-width="2.5"/>
+              <rect x="-14" y="-32" width="28" height="56" rx="3" fill="#0d1526"/>
+              <rect x="-7" y="-38" width="14" height="3" rx="1.5" fill="var(--accent)"/>
+              <line x1="0" y1="-40" x2="0" y2="-70" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="4 3"/>
+              <path d="M-6,-62 L0,-73 L6,-62 Z" fill="var(--accent)"/>
+            </g>
+            <text x="242" y="202" fill="var(--accent)" font-size="10.5" font-family="sans-serif" font-weight="700">Celular</text>
+
+            <text x="210" y="215" fill="#8a96ab" font-size="9" font-family="sans-serif" text-anchor="middle">las dos flechas apuntan igual</text>
+          </svg>
+        </div>
+        <p class="note" style="text-align:left">Vista <b>desde arriba</b>: el celular tiene que apuntar exactamente en
+          el mismo sentido que el plato (flecha naranja y flecha verde en paralelo). Apoyalo bien plano, alineado con
+          el eje del plato, y dejalo quieto ahí al tocar "Marcar".</p>
+
+        <button id="markBtn">📍 Marcar acá = Intelsat 23</button>
+        <div class="live-target" id="liveTarget"></div>
+
+        <div id="liveBox" style="display:none">
+          <div class="live-big" id="liveMoved">0.0°</div>
+          <div class="bar-track">
+            <div class="bar-fill" id="liveBar"></div>
+          </div>
+          <div class="live-status" id="liveStatus">Empezá a mover el plato despacio hacia la izquierda</div>
+        </div>
+        <p class="note">Con el celular ya alineado como en el dibujo de arriba, dejalo firme y tocá "Marcar".</p>
+
+        <div id="noCompass">
+          ❌ Este dispositivo no tiene brújula o el navegador no permite acceder al sensor de orientación.
+        </div>
+
       </div>
 
+    </div>
+
+    <!-- ===================== TAB: MANUAL ===================== -->
+    <div class="tab-panel" id="tab-manual">
+      <div class="card">
+        <p class="section-title">Manual SES-10</p>
+        <p class="section-sub">Documento de referencia con los parámetros técnicos del satélite de destino.</p>
+
+        <button onclick="verPDF()" style="background:var(--accent);color:#06251c;margin-bottom:10px">
+          👁 Ver manual SES-10 online
+        </button>
+
+        <button onclick="descargarPDF()" style="background:var(--accent2);color:#3a1c00">
+          ⬇ Descargar manual SES-10
+        </button>
+      </div>
     </div>
 
   </div>
 
   <script>
-    const SAT_ORIGEN = -61;   // Amazonas 2/3, 61° Oeste
+    const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
     const SAT_DESTINO = -67;  // SES-10, 67° Oeste
     let sensorDetectado = false;
+
+    // ---------- Tabs ----------
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    }
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
 
     function verPDF() {
       window.open("SES_10.pdf", "_blank");
@@ -338,6 +737,55 @@
       link.href = "SES_10.pdf";
       link.download = "SES_10.pdf";
       link.click();
+    }
+
+    // ---------- Mapa (Leaflet + OpenStreetMap) ----------
+    let map, marker, azLine;
+    let mapInitialized = false;
+
+    function initMapIfNeeded() {
+      if (mapInitialized) return;
+      map = L.map('siteMap', { zoomControl: true }).setView([-31.4, -64.2], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 18
+      }).addTo(map);
+      marker = L.marker([-31.4, -64.2], { draggable: true }).addTo(map);
+      marker.on('dragend', () => {
+        const pos = marker.getLatLng();
+        document.getElementById('lat').value = pos.lat.toFixed(5);
+        document.getElementById('lon').value = pos.lng.toFixed(5);
+        calcular(pos.lat, pos.lng);
+      });
+      map.on('click', (e) => {
+        marker.setLatLng(e.latlng);
+        document.getElementById('lat').value = e.latlng.lat.toFixed(5);
+        document.getElementById('lon').value = e.latlng.lng.toFixed(5);
+        calcular(e.latlng.lat, e.latlng.lng);
+      });
+      mapInitialized = true;
+      setTimeout(() => map.invalidateSize(), 200);
+    }
+
+    // Punto destino dado un origen, un rumbo (grados) y una distancia (km) — solo para dibujar la línea de azimut.
+    function destPoint(lat, lon, bearingDeg, distKm) {
+      const R = 6371;
+      const brng = bearingDeg * Math.PI / 180;
+      const lat1 = lat * Math.PI / 180, lon1 = lon * Math.PI / 180;
+      const lat2 = Math.asin(Math.sin(lat1) * Math.cos(distKm / R) + Math.cos(lat1) * Math.sin(distKm / R) * Math.cos(brng));
+      const lon2 = lon1 + Math.atan2(Math.sin(brng) * Math.sin(distKm / R) * Math.cos(lat1), Math.cos(distKm / R) - Math.sin(lat1) * Math.sin(lat2));
+      return [lat2 * 180 / Math.PI, lon2 * 180 / Math.PI];
+    }
+
+    function updateMap(lat, lon, azDestino) {
+      document.getElementById('mapPanel').style.display = 'block';
+      initMapIfNeeded();
+      marker.setLatLng([lat, lon]);
+      map.setView([lat, lon], 13);
+      const end = destPoint(lat, lon, azDestino, 5);
+      if (azLine) map.removeLayer(azLine);
+      azLine = L.polyline([[lat, lon], end], { color: '#4fd1a5', weight: 4, dashArray: '6 6' }).addTo(map);
+      setTimeout(() => map.invalidateSize(), 150);
     }
 
     function pointing(lat, lon, satLon) {
@@ -373,6 +821,7 @@
     function calcular(lat, lon) {
       const status = document.getElementById('status');
       const results = document.getElementById('results');
+      const sesDataCard = document.getElementById('sesDataCard');
 
       const origen = pointing(lat, lon, SAT_ORIGEN);
       const destino = pointing(lat, lon, SAT_DESTINO);
@@ -401,11 +850,12 @@
         Math.abs(diffAz).toFixed(1) + (diffAz < 0 ? "° ← izquierda" : "° → derecha");
 
       results.style.display = 'block';
+      sesDataCard.style.display = 'block';
+      updateMap(lat, lon, destino.az);
 
       targetDiff = diffAz;
       const dirTxt = diffAz < 0 ? 'a la izquierda' : 'a la derecha';
       document.getElementById('liveTarget').innerHTML = `Objetivo: <b>${Math.abs(diffAz).toFixed(1)}°</b> ${dirTxt}`;
-      document.getElementById('compassCard').style.display = 'block';
       resetLive();
       verificarBrujula();
     }
@@ -413,7 +863,7 @@
     document.getElementById('locBtn').addEventListener('click', () => {
       const status = document.getElementById('status');
       if (!navigator.geolocation) {
-        status.textContent = 'Este navegador no permite obtener la ubicación. Ingresá lat/lon manualmente.';
+        status.textContent = 'Este navegador no permite obtener la ubicación. Usá "Ingresar coordenadas manualmente".';
         return;
       }
       status.textContent = 'Obteniendo ubicación...';
@@ -425,7 +875,7 @@
           calcular(pos.coords.latitude, pos.coords.longitude);
         },
         err => {
-          status.textContent = 'No se pudo obtener la ubicación. Ingresá lat/lon manualmente abajo.';
+          status.textContent = 'No se pudo obtener la ubicación. Usá "Ingresar coordenadas manualmente".';
         }
       );
     });
@@ -454,7 +904,7 @@
       capturing = false;
       reached = false;
       document.getElementById('liveBox').style.display = 'none';
-      document.getElementById('markBtn').textContent = '📍 Marcar acá = Amazonas 2/3';
+      document.getElementById('markBtn').textContent = '📍 Marcar acá = Intelsat 23';
       document.getElementById('markBtn').classList.remove('marked');
     }
 
@@ -477,6 +927,13 @@
       // lo ocultamos apenas confirmamos que sí llegan datos reales.
       document.getElementById('noCompass').style.display = 'none';
       document.getElementById('markBtn').style.display = 'block';
+
+      // Sensores activos: la app está recibiendo lecturas reales de orientación,
+      // así que encendemos los tres indicadores y mostramos el heading en vivo.
+      document.getElementById('dotAccel').classList.add('active');
+      document.getElementById('dotMag').classList.add('active');
+      document.getElementById('dotGyro').classList.add('active');
+      document.getElementById('sensorHeading').textContent = Math.round(heading) + '°';
 
       if (capturing) {
         startHeading = heading;
