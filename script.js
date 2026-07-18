@@ -129,8 +129,6 @@
 
       document.getElementById('sesAz').textContent = destino.az.toFixed(1) + "°";
       document.getElementById('sesEl').textContent = destino.el.toFixed(2) + "°";
-      document.getElementById('sesMove').textContent =
-        Math.abs(diffAz).toFixed(1) + (diffAz < 0 ? "° ← izquierda" : "° → derecha");
 
       results.style.display = 'block';
       sesDataCard.style.display = 'block';
@@ -158,8 +156,24 @@
           calcular(pos.coords.latitude, pos.coords.longitude);
         },
         err => {
-          status.textContent = 'No se pudo obtener la ubicación. Usá "Ingresar coordenadas manualmente".';
-        }
+          // err.code: 1 = permiso denegado, 2 = posición no disponible, 3 = timeout
+          let msg;
+          switch (err.code) {
+            case 1:
+              msg = 'Permiso de ubicación denegado. Habilitalo en el ícono del candado/sitio, junto a la barra de direcciones.';
+              break;
+            case 2:
+              msg = 'No se pudo determinar la posición (sin GPS/Wi-Fi con datos de ubicación, o "Ubicación" desactivada en el sistema operativo).';
+              break;
+            case 3:
+              msg = 'Se agotó el tiempo esperando la ubicación. Probá de nuevo o ingresá las coordenadas manualmente.';
+              break;
+            default:
+              msg = 'No se pudo obtener la ubicación.';
+          }
+          status.textContent = msg + ' Usá "Ingresar coordenadas manualmente" mientras tanto.';
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     });
 
