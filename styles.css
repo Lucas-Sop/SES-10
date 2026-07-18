@@ -210,7 +210,8 @@
       display: none;
     }
 
-    #siteMap {
+    #siteMap,
+    #siteMap2 {
       height: 210px;
       border-radius: 10px;
       overflow: hidden;
