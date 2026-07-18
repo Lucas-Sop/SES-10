@@ -263,9 +263,10 @@
         <p class="sub">Ubicación, datos del satélite y brújula para apuntar desde cero</p>
       </div>
 
-      <div class="tabs" style="grid-template-columns:repeat(2,1fr)">
+      <div class="tabs">
         <button class="tab-btn active" data-tab="ubicacion"><span class="tab-icon">📍</span>Ubicación</button>
         <button class="tab-btn" data-tab="brujula"><span class="tab-icon">🧭</span>Brújula</button>
+        <button class="tab-btn" data-tab="manualNueva"><span class="tab-icon">📄</span>Manual</button>
       </div>
 
       <!-- ===================== TAB: UBICACIÓN ===================== -->
@@ -351,6 +352,9 @@
         </div>
 
       </div>
+
+      <!-- ===================== TAB: MANUAL (clonado por JS desde el manual de Cambiar de satélite) ===================== -->
+      <div class="tab-panel" id="tab-manualNueva"></div>
 
     </div>
     <!-- ============ fin #modeNewAntenna ============ -->

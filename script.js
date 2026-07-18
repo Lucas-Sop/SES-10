@@ -3,18 +3,34 @@
     let sensorDetectado = false;
 
     // ---------- Tabs ----------
-    function switchTab(name) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    // IMPORTANTE: switchTab está delimitado al "modo" (Cambiar de satélite / Apuntar
+    // nueva antena) al que pertenece el botón tocado. Antes buscaba .tab-btn/.tab-panel
+    // en TODO el documento, así que tocar una pestaña en un modo desactivaba sin
+    // querer las pestañas del OTRO modo (ej: entrar a "Apuntar nueva antena" dejaba
+    // "Cambiar de satélite" sin ninguna pestaña activa, rompiendo el ajuste en vivo).
+    function switchTab(name, btnEl) {
+      const btn = btnEl || document.querySelector(`.tab-btn[data-tab="${name}"]`);
+      if (!btn) return;
+      const scope = btn.closest('#modeChangeSat, #modeNewAntenna') || document;
+      scope.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      scope.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
       // La pestaña de brújula normal necesita el sensor de orientación activo.
       // Pedimos permiso (si hace falta, iOS) en el mismo click que abre la pestaña,
       // porque el permiso solo se puede pedir a partir de un gesto del usuario.
       if (name === 'brujula') {
         requestCompassPermission();
       }
+      // Los mapas de Leaflet se inicializan a veces con el panel oculto (display:none),
+      // así que al volver a mostrar su pestaña les pedimos que recalculen el tamaño.
+      if (name === 'calc' && map) {
+        setTimeout(() => map.invalidateSize(), 50);
+      }
+      if (name === 'ubicacion' && map2) {
+        setTimeout(() => map2.invalidateSize(), 50);
+      }
     }
     document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
     });
 
     // ---------- Selección de modo ----------
@@ -611,3 +627,12 @@
         note.textContent = 'Corrección de norte restablecida (usando la brújula del sensor tal cual).';
       });
     });
+
+    // ---------- Pestaña "Manual" también en el modo Apuntar nueva antena ----------
+    // Reutilizamos el mismo contenido del manual (ver/descargar PDF + activar Telnet y RF)
+    // clonándolo por JS en lugar de duplicarlo en el HTML.
+    (function cloneManualTab() {
+      const src = document.getElementById('tab-manual');
+      const dst = document.getElementById('tab-manualNueva');
+      if (src && dst) dst.innerHTML = src.innerHTML;
+    })();
