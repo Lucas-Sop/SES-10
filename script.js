@@ -1,4 +1,4 @@
-const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
+    const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
     const SAT_DESTINO = -67;  // SES-10, 67° Oeste
     let sensorDetectado = false;
 
@@ -6,10 +6,32 @@ const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
     function switchTab(name) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+      // La pestaña de brújula normal necesita el sensor de orientación activo.
+      // Pedimos permiso (si hace falta, iOS) en el mismo click que abre la pestaña,
+      // porque el permiso solo se puede pedir a partir de un gesto del usuario.
+      if (name === 'brujula') {
+        requestCompassPermission();
+      }
     }
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
+
+    // ---------- Selección de modo ----------
+    function showMode(mode) {
+      document.getElementById('modeSelect').style.display = 'none';
+      document.getElementById('modeChangeSat').style.display = mode === 'change' ? 'block' : 'none';
+      document.getElementById('modeNewAntenna').style.display = mode === 'new' ? 'block' : 'none';
+    }
+    function backToModeSelect() {
+      document.getElementById('modeSelect').style.display = 'block';
+      document.getElementById('modeChangeSat').style.display = 'none';
+      document.getElementById('modeNewAntenna').style.display = 'none';
+    }
+    document.getElementById('modeNewBtn').addEventListener('click', () => showMode('new'));
+    document.getElementById('modeChangeBtn').addEventListener('click', () => showMode('change'));
+    document.getElementById('backBtnChange').addEventListener('click', backToModeSelect);
+    document.getElementById('backBtnNew').addEventListener('click', backToModeSelect);
 
     function verPDF() {
       window.open("SES_10.pdf", "_blank");
@@ -227,6 +249,8 @@ const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
       const heading = rawHeading(e);
       if (heading === null) return;
       sensorDetectado = true;
+      lastRawHeading = heading;
+      updateCompassRose(heading);
 
       // Si el mensaje de "sin brújula" quedó mostrado por error (falso negativo previo),
       // lo ocultamos apenas confirmamos que sí llegan datos reales.
@@ -305,6 +329,38 @@ const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
       if (!('DeviceMotionEvent' in window)) return;
       window.addEventListener('devicemotion', handleMotion, true);
       motionListening = true;
+    }
+
+    // Pide permiso de orientación/movimiento (iOS) y arranca los listeners.
+    // Se llama desde el click que abre la pestaña "Brújula" del modo nueva antena,
+    // así el permiso se pide dentro de un gesto real del usuario.
+    function requestCompassPermission() {
+      const noCompass2 = document.getElementById('noCompass2');
+      if (!("DeviceOrientationEvent" in window)) {
+        noCompass2.style.display = 'block';
+        return;
+      }
+      const necesitaPermiso = typeof DeviceOrientationEvent.requestPermission === 'function';
+      if (necesitaPermiso) {
+        DeviceOrientationEvent.requestPermission().then(state => {
+          if (state === 'granted') {
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+              DeviceMotionEvent.requestPermission().catch(() => {});
+            }
+            noCompass2.style.display = 'none';
+            ensureListening();
+          } else {
+            noCompass2.textContent = '❌ Permiso denegado. Activalo desde los ajustes del navegador (Configuración → Safari → Acceso a Movimiento y Orientación).';
+            noCompass2.style.display = 'block';
+          }
+        }).catch(() => {
+          noCompass2.textContent = '❌ No se pudo pedir permiso de sensores en este navegador.';
+          noCompass2.style.display = 'block';
+        });
+      } else {
+        noCompass2.style.display = 'none';
+        ensureListening();
+      }
     }
 
     // Chequea si hay brújula disponible. En iOS (donde hace falta pedir permiso con
@@ -391,4 +447,167 @@ const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
         noCompass.textContent = '❌ Este navegador no tiene sensor de orientación disponible.';
         noCompass.style.display = 'block';
       }
+    });
+
+    // ================================================================
+    // ============ MODO: APUNTAR NUEVA ANTENA (brújula normal) ========
+    // ================================================================
+
+    let lastRawHeading = null;   // último heading crudo recibido del sensor
+    let northOffset = 0;         // corrección manual si la brújula está desviada
+    let targetAzNew = null;      // azimut de SES-10 desde el punto calculado
+    let targetElNew = null;      // elevación de SES-10 desde el punto calculado
+
+    function normalize360(deg) {
+      return ((deg % 360) + 360) % 360;
+    }
+
+    function azToCardinal(deg) {
+      const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+      const idx = Math.round(normalize360(deg) / 45) % 8;
+      return dirs[idx];
+    }
+
+    // ---------- Mapa 2 (para "Ubicación" del modo nueva antena) ----------
+    let map2, marker2, azLine2;
+    let map2Initialized = false;
+
+    function initMap2IfNeeded() {
+      if (map2Initialized) return;
+      map2 = L.map('siteMap2', { zoomControl: true }).setView([-31.4, -64.2], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 18
+      }).addTo(map2);
+      marker2 = L.marker([-31.4, -64.2], { draggable: true }).addTo(map2);
+      marker2.on('dragend', () => {
+        const pos = marker2.getLatLng();
+        document.getElementById('lat2').value = pos.lat.toFixed(5);
+        document.getElementById('lon2').value = pos.lng.toFixed(5);
+        calcularNuevaAntena(pos.lat, pos.lng);
+      });
+      map2.on('click', (e) => {
+        marker2.setLatLng(e.latlng);
+        document.getElementById('lat2').value = e.latlng.lat.toFixed(5);
+        document.getElementById('lon2').value = e.latlng.lng.toFixed(5);
+        calcularNuevaAntena(e.latlng.lat, e.latlng.lng);
+      });
+      map2Initialized = true;
+      setTimeout(() => map2.invalidateSize(), 200);
+    }
+
+    function updateMap2(lat, lon, az) {
+      document.getElementById('mapPanel2').style.display = 'block';
+      initMap2IfNeeded();
+      marker2.setLatLng([lat, lon]);
+      map2.setView([lat, lon], 13);
+      const end = destPoint(lat, lon, az, 5);
+      if (azLine2) map2.removeLayer(azLine2);
+      azLine2 = L.polyline([[lat, lon], end], { color: '#4fd1a5', weight: 4, dashArray: '6 6' }).addTo(map2);
+      setTimeout(() => map2.invalidateSize(), 150);
+    }
+
+    function calcularNuevaAntena(lat, lon) {
+      const status2 = document.getElementById('status2');
+      const destino = pointing(lat, lon, SAT_DESTINO);
+
+      if (destino.el < 5) {
+        status2.textContent = 'Con esta ubicación, SES-10 está muy bajo o fuera de vista.';
+      } else {
+        status2.textContent = '';
+      }
+
+      targetAzNew = destino.az;
+      targetElNew = destino.el;
+
+      document.getElementById('azVal2').textContent = destino.az.toFixed(1) + '°';
+      document.getElementById('azDir2').textContent = azToCardinal(destino.az);
+      document.getElementById('elVal2').textContent = destino.el.toFixed(2) + '°';
+      document.getElementById('results2').style.display = 'block';
+
+      updateMap2(lat, lon, destino.az);
+
+      document.getElementById('compassTargetNote').innerHTML =
+        `SES-10 está a <b>${destino.az.toFixed(1)}° (${azToCardinal(destino.az)})</b> y ` +
+        `<b>${destino.el.toFixed(2)}°</b> de elevación desde este punto.`;
+
+      const satMarkerGroup = document.getElementById('satMarkerGroup');
+      if (satMarkerGroup) {
+        satMarkerGroup.setAttribute('transform', `rotate(${targetAzNew} 120 120)`);
+      }
+    }
+
+    document.getElementById('locBtn2').addEventListener('click', () => {
+      const status2 = document.getElementById('status2');
+      if (!navigator.geolocation) {
+        status2.textContent = 'Este navegador no permite obtener la ubicación. Usá "Ingresar coordenadas manualmente".';
+        return;
+      }
+      status2.textContent = 'Obteniendo ubicación...';
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          document.getElementById('lat2').value = pos.coords.latitude.toFixed(5);
+          document.getElementById('lon2').value = pos.coords.longitude.toFixed(5);
+          status2.textContent = '';
+          calcularNuevaAntena(pos.coords.latitude, pos.coords.longitude);
+        },
+        err => {
+          let msg;
+          switch (err.code) {
+            case 1:
+              msg = 'Permiso de ubicación denegado. Habilitalo en el ícono del candado/sitio, junto a la barra de direcciones.';
+              break;
+            case 2:
+              msg = 'No se pudo determinar la posición (sin GPS/Wi-Fi con datos de ubicación, o "Ubicación" desactivada en el sistema operativo).';
+              break;
+            case 3:
+              msg = 'Se agotó el tiempo esperando la ubicación. Probá de nuevo o ingresá las coordenadas manualmente.';
+              break;
+            default:
+              msg = 'No se pudo obtener la ubicación.';
+          }
+          status2.textContent = msg + ' Usá "Ingresar coordenadas manualmente" mientras tanto.';
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+    document.getElementById('calcBtn2').addEventListener('click', () => {
+      const lat = parseFloat(document.getElementById('lat2').value);
+      const lon = parseFloat(document.getElementById('lon2').value);
+      const status2 = document.getElementById('status2');
+      if (isNaN(lat) || isNaN(lon)) {
+        status2.textContent = 'Ingresá latitud y longitud válidas.';
+        return;
+      }
+      status2.textContent = '';
+      calcularNuevaAntena(lat, lon);
+    });
+
+    // ---------- Brújula normal (rosa que gira + marcador de SES-10) ----------
+    function updateCompassRose(rawHeadingDeg) {
+      const dial = document.getElementById('compassDial');
+      const headingText = document.getElementById('compassHeadingText');
+      if (!dial || !headingText) return; // el DOM del modo nueva antena no está en esta página
+
+      const adjHeading = normalize360(rawHeadingDeg - northOffset);
+      dial.setAttribute('transform', `rotate(${-adjHeading} 120 120)`);
+      headingText.textContent = Math.round(adjHeading) + '° (' + azToCardinal(adjHeading) + ')';
+
+      const noCompass2 = document.getElementById('noCompass2');
+      if (noCompass2) noCompass2.style.display = 'none';
+    }
+
+    document.getElementById('setNorthBtn').addEventListener('click', () => {
+      const note = document.getElementById('northOffsetNote');
+      if (lastRawHeading === null) {
+        note.textContent = 'Todavía no llegó ninguna lectura del sensor. Esperá un instante y probá de nuevo.';
+        return;
+      }
+      northOffset = lastRawHeading;
+      note.innerHTML = '✅ Norte seteado. <span id="resetNorthLink" style="text-decoration:underline;cursor:pointer">Restablecer</span>';
+      document.getElementById('resetNorthLink').addEventListener('click', () => {
+        northOffset = 0;
+        note.textContent = 'Corrección de norte restablecida (usando la brújula del sensor tal cual).';
+      });
     });

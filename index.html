@@ -12,16 +12,42 @@
 
 <body>
   <div class="wrap">
-    <h1>Intelsat 23 → SES-10</h1>
-    <p class="sub">Guía completa para mover el plato de Intelsat 23 a SES-10</p>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="calc"><span class="tab-icon">📍</span>Calculadora</button>
-      <button class="tab-btn" data-tab="live"><span class="tab-icon">🧭</span>Ajuste en vivo</button>
-      <button class="tab-btn" data-tab="manual"><span class="tab-icon">📄</span>Manual</button>
+    <!-- ===================== SELECCIÓN DE MODO ===================== -->
+    <div id="modeSelect">
+      <h1>Apuntamiento SES-10</h1>
+      <p class="sub">Elegí qué vas a hacer</p>
+
+      <div class="card mode-card" id="modeNewBtn">
+        <div class="mode-icon">🛰️</div>
+        <div class="mode-title">Apuntar nueva antena</div>
+        <div class="mode-desc">Instalación nueva: ubicación en el mapa, datos de SES-10 y brújula normal para
+          orientar el plato desde cero.</div>
+      </div>
+
+      <div class="card mode-card" id="modeChangeBtn">
+        <div class="mode-icon">🔄</div>
+        <div class="mode-title">Cambiar de satélite</div>
+        <div class="mode-desc">Migrar una antena que ya apunta a Intelsat 23, moviéndola hacia SES-10.</div>
+      </div>
     </div>
 
-    <!-- ===================== TAB: CALCULADORA ===================== -->
+    <!-- ===================== MODO: CAMBIAR DE SATÉLITE ===================== -->
+    <div id="modeChangeSat" style="display:none">
+
+      <div class="app-header">
+        <button class="back-btn" id="backBtnChange">← Cambiar de modo</button>
+        <h1>Intelsat 23 → SES-10</h1>
+        <p class="sub">Guía completa para mover el plato de Intelsat 23 a SES-10</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="calc"><span class="tab-icon">📍</span>Calculadora</button>
+        <button class="tab-btn" data-tab="live"><span class="tab-icon">🧭</span>Ajuste en vivo</button>
+        <button class="tab-btn" data-tab="manual"><span class="tab-icon">📄</span>Manual</button>
+      </div>
+
+      <!-- ===================== TAB: CALCULADORA ===================== -->
     <div class="tab-panel active" id="tab-calc">
 
       <div class="card">
@@ -224,6 +250,110 @@
           equipo) .</div>
       </div>
     </div>
+
+    </div>
+    <!-- ============ fin #modeChangeSat ============ -->
+
+    <!-- ===================== MODO: APUNTAR NUEVA ANTENA ===================== -->
+    <div id="modeNewAntenna" style="display:none">
+
+      <div class="app-header">
+        <button class="back-btn" id="backBtnNew">← Cambiar de modo</button>
+        <h1>Apuntar nueva antena a SES-10</h1>
+        <p class="sub">Ubicación, datos del satélite y brújula para apuntar desde cero</p>
+      </div>
+
+      <div class="tabs" style="grid-template-columns:repeat(2,1fr)">
+        <button class="tab-btn active" data-tab="ubicacion"><span class="tab-icon">📍</span>Ubicación</button>
+        <button class="tab-btn" data-tab="brujula"><span class="tab-icon">🧭</span>Brújula</button>
+      </div>
+
+      <!-- ===================== TAB: UBICACIÓN ===================== -->
+      <div class="tab-panel active" id="tab-ubicacion">
+
+        <div class="card">
+          <button id="locBtn2">📍 Usar mi ubicación</button>
+          <div id="status2"></div>
+        </div>
+
+        <div class="card" id="mapPanel2">
+          <p class="section-title" style="font-size:13.5px;margin-bottom:2px">Coordenadas y mapa</p>
+          <p class="section-sub" style="margin-top:0">Escribí la latitud y longitud, o tocá el mapa para marcar el
+            punto. El pin se puede arrastrar.</p>
+          <div class="manual">
+            <input id="lat2" type="number" step="any" placeholder="Latitud">
+            <input id="lon2" type="number" step="any" placeholder="Longitud">
+          </div>
+          <div id="siteMap2"></div>
+          <p class="note" style="margin-top:8px">La línea celeste marca hacia dónde apunta el azimut de SES-10 desde
+            ese punto.</p>
+          <button id="calcBtn2" style="margin-top:12px">Calcular</button>
+        </div>
+
+        <div class="result" id="results2" style="display:none">
+          <div class="label">Datos SES-10 desde este punto</div>
+          <div class="results-row" style="margin-top:10px">
+            <div class="result az" style="margin-bottom:0">
+              <div class="label">Azimut</div>
+              <div class="big" id="azVal2">–</div>
+              <div class="dir" id="azDir2">–</div>
+            </div>
+            <div class="result el" style="margin-bottom:0">
+              <div class="label">Elevación</div>
+              <div class="big" id="elVal2">–</div>
+              <div class="dir">sobre el horizonte</div>
+            </div>
+          </div>
+          <button class="goto-btn" style="margin-top:14px" onclick="switchTab('brujula')">🧭 Ir a la brújula</button>
+        </div>
+
+      </div>
+
+      <!-- ===================== TAB: BRÚJULA ===================== -->
+      <div class="tab-panel" id="tab-brujula">
+
+        <div class="compass-card">
+          <p class="section-title" style="text-align:left">Brújula</p>
+          <p class="section-sub" style="text-align:left">Apoyá el celular plano y girá hasta que la flecha verde
+            (tu teléfono) coincida con el punto naranja (SES-10). Si notás que la brújula está desviada o
+            "cruzada", parate mirando al norte real (con un mapa, el sol, u otra referencia) y tocá "Setear Norte".</p>
+
+          <div class="compass-wrap">
+            <svg viewBox="0 0 240 240" id="compassSvg" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="120" cy="120" r="105" fill="#0d1526" stroke="#25334d" stroke-width="2"></circle>
+              <circle cx="120" cy="120" r="80" fill="none" stroke="#1a2540" stroke-width="1"></circle>
+              <g id="compassDial">
+                <text x="120" y="30" fill="#e8edf7" font-size="16" font-family="sans-serif" font-weight="800" text-anchor="middle">N</text>
+                <text x="210" y="125" fill="#8a96ab" font-size="13" font-family="sans-serif" text-anchor="middle">E</text>
+                <text x="120" y="220" fill="#8a96ab" font-size="13" font-family="sans-serif" text-anchor="middle">S</text>
+                <text x="30" y="125" fill="#8a96ab" font-size="13" font-family="sans-serif" text-anchor="middle">O</text>
+                <g id="satMarkerGroup">
+                  <circle cx="120" cy="24" r="7" fill="#ff9f5a"></circle>
+                  <text x="120" y="12" fill="#ff9f5a" font-size="9" font-family="sans-serif" font-weight="700" text-anchor="middle">SES-10</text>
+                </g>
+              </g>
+              <polygon points="120,48 112,72 128,72" fill="#4fd1a5"></polygon>
+              <circle cx="120" cy="120" r="4" fill="#4fd1a5"></circle>
+            </svg>
+          </div>
+
+          <div class="live-big" id="compassHeadingText">–°</div>
+          <div class="note" id="compassTargetNote">Calculá primero en "Ubicación" para ver hacia dónde está SES-10.
+          </div>
+
+          <button id="setNorthBtn" style="margin-top:14px;background:transparent;border:1px solid var(--accent);color:var(--accent)">🧭
+            Setear Norte (parado mirando al norte real)</button>
+          <div class="note" id="northOffsetNote" style="margin-top:6px"></div>
+
+          <div id="noCompass2" style="display:none">
+            ❌ Este dispositivo no tiene brújula o el navegador no permite acceder al sensor de orientación.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <!-- ============ fin #modeNewAntenna ============ -->
 
   </div>
 
