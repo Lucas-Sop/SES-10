@@ -66,6 +66,10 @@
 
     function initMapIfNeeded() {
       if (mapInitialized) return;
+      const siteMapEl = document.getElementById('siteMap');
+      if (siteMapEl && siteMapEl.clientHeight === 0) {
+        siteMapEl.style.height = '210px';
+      }
       map = L.map('siteMap', { zoomControl: true }).setView([-31.4, -64.2], 4);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
@@ -490,6 +494,13 @@
 
     function initMap2IfNeeded() {
       if (map2Initialized) return;
+      // Respaldo por si el CSS (styles.css) todavía no tiene el alto de #siteMap2
+      // -por ejemplo, cache del navegador con una versión vieja del archivo-:
+      // sin alto, Leaflet inicializa el mapa en un contenedor de 0px y no se ve nada.
+      const siteMap2El = document.getElementById('siteMap2');
+      if (siteMap2El && siteMap2El.clientHeight === 0) {
+        siteMap2El.style.height = '210px';
+      }
       map2 = L.map('siteMap2', { zoomControl: true }).setView([-31.4, -64.2], 4);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
@@ -550,6 +561,7 @@
       const satMarkerGroup = document.getElementById('satMarkerGroup');
       if (satMarkerGroup) {
         satMarkerGroup.setAttribute('transform', `rotate(${targetAzNew} 120 120)`);
+        satMarkerGroup.style.opacity = '1';
       }
     }
 
