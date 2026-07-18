@@ -1,4 +1,4 @@
-    const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
+const SAT_ORIGEN = -53;   // Intelsat 23, 53° Oeste
     const SAT_DESTINO = -67;  // SES-10, 67° Oeste
     let sensorDetectado = false;
 
@@ -194,6 +194,7 @@
     let startHeading = null; // referencia tomada al tocar "Marcar"
     let capturing = false;   // esperando la primera lectura del sensor tras marcar
     let listening = false;   // ya hay un listener de orientación activo
+    let motionListening = false; // ya hay un listener de devicemotion activo (para giroscopio)
     let reached = false;
 
     function resetLive() {
@@ -215,6 +216,13 @@
       return ((deg + 540) % 360) - 180;
     }
 
+    // ---------- Detección de sensores ----------
+    // IMPORTANTE: el evento 'deviceorientation' (heading/brújula) se calcula
+    // combinando acelerómetro + magnetómetro. Que llegue este evento NO implica
+    // que el teléfono tenga giroscopio físico. El giroscopio solo se puede
+    // confirmar con 'devicemotion' -> rotationRate, que llega en null cuando
+    // el dispositivo no tiene ese sensor (por eso antes marcaba los 3 en verde
+    // aunque el teléfono no tuviera giroscopio real).
     function handleOrientation(e) {
       const heading = rawHeading(e);
       if (heading === null) return;
@@ -225,11 +233,10 @@
       document.getElementById('noCompass').style.display = 'none';
       document.getElementById('markBtn').style.display = 'block';
 
-      // Sensores activos: la app está recibiendo lecturas reales de orientación,
-      // así que encendemos los tres indicadores y mostramos el heading en vivo.
+      // Este evento confirma acelerómetro + magnetómetro (son los que arman el heading).
+      // El giroscopio se confirma aparte, en handleMotion().
       document.getElementById('dotAccel').classList.add('active');
       document.getElementById('dotMag').classList.add('active');
-      document.getElementById('dotGyro').classList.add('active');
       document.getElementById('sensorHeading').textContent = Math.round(heading) + '°';
 
       if (capturing) {
@@ -271,14 +278,33 @@
       }
     }
 
-    function ensureListening() {
-      if (listening) return;
-      if ('ondeviceorientationabsolute' in window) {
-        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-      } else {
-        window.addEventListener('deviceorientation', handleOrientation, true);
+    // Confirma el giroscopio físico a partir de devicemotion.rotationRate.
+    // Si el navegador nunca entrega valores reales ahí, el punto se queda
+    // apagado — igual que la página nativa de "Sensores" del teléfono.
+    function handleMotion(e) {
+      const rr = e.rotationRate;
+      if (rr && (rr.alpha !== null || rr.beta !== null || rr.gamma !== null)) {
+        document.getElementById('dotGyro').classList.add('active');
       }
-      listening = true;
+    }
+
+    function ensureListening() {
+      if (!listening) {
+        if ('ondeviceorientationabsolute' in window) {
+          window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        } else {
+          window.addEventListener('deviceorientation', handleOrientation, true);
+        }
+        listening = true;
+      }
+      ensureMotionListening();
+    }
+
+    function ensureMotionListening() {
+      if (motionListening) return;
+      if (!('DeviceMotionEvent' in window)) return;
+      window.addEventListener('devicemotion', handleMotion, true);
+      motionListening = true;
     }
 
     // Chequea si hay brújula disponible. En iOS (donde hace falta pedir permiso con
@@ -335,9 +361,20 @@
         }, 2000);
       };
 
+      // En iOS, DeviceMotionEvent (acelerómetro/giroscopio crudo) pide permiso
+      // por separado de DeviceOrientationEvent (brújula). Pedimos los dos con
+      // el mismo gesto del usuario para que el punto del giroscopio también
+      // pueda encenderse si el hardware lo tiene.
+      const pedirPermisoMotion = () => {
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission().catch(() => {});
+        }
+      };
+
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().then(state => {
           if (state === 'granted') {
+            pedirPermisoMotion();
             startMark();
           } else {
             noCompass.textContent = '❌ Permiso denegado. Activalo desde los ajustes del navegador (Configuración → Safari → Acceso a Movimiento y Orientación).';
@@ -348,6 +385,7 @@
           noCompass.style.display = 'block';
         });
       } else if (window.DeviceOrientationEvent) {
+        pedirPermisoMotion();
         startMark();
       } else {
         noCompass.textContent = '❌ Este navegador no tiene sensor de orientación disponible.';
