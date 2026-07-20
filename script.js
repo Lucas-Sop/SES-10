@@ -478,6 +478,14 @@
     let targetAzNew = null;      // azimut de SES-10 desde el punto calculado
     let targetElNew = null;      // elevación de SES-10 desde el punto calculado
 
+    // Rotación acumulada (sin normalizar) del dial de la brújula. La usamos en vez
+    // de fijar siempre el ángulo 0-360°, para evitar que al cruzar el Norte (ej:
+    // 359° -> 1°) la transición CSS anime la vuelta larga (358°) en lugar del
+    // giro real y corto (2°). Puede crecer o decrecer sin límite (720°, -40°, etc.),
+    // el resultado visual es el mismo.
+    let compassRotation = 0;
+    let compassRotationInit = false;
+
     function normalize360(deg) {
       return ((deg % 360) + 360) % 360;
     }
@@ -619,8 +627,25 @@
       if (!dial || !headingText) return; // el DOM del modo nueva antena no está en esta página
 
       const adjHeading = normalize360(rawHeadingDeg - northOffset);
-      dial.setAttribute('transform', `rotate(${-adjHeading} 120 120)`);
       headingText.textContent = Math.round(adjHeading) + '° (' + azToCardinal(adjHeading) + ')';
+
+      // En vez de fijar rotate(-adjHeading) directo (0-360°), acumulamos tomando
+      // siempre el delta más corto respecto a la rotación anterior. Así, al cruzar
+      // el Norte, el dial gira solo lo que realmente se movió (unos pocos grados)
+      // y no toda la vuelta larga que la transición CSS animaría si el valor
+      // saltara de golpe de -359° a -1°.
+      const targetRotation = normalize360(-adjHeading);
+      if (!compassRotationInit) {
+        compassRotation = targetRotation;
+        compassRotationInit = true;
+      } else {
+        const current360 = normalize360(compassRotation);
+        let delta = targetRotation - current360;
+        if (delta > 180) delta -= 360;
+        else if (delta < -180) delta += 360;
+        compassRotation += delta;
+      }
+      dial.setAttribute('transform', `rotate(${compassRotation} 120 120)`);
 
       const noCompass2 = document.getElementById('noCompass2');
       if (noCompass2) noCompass2.style.display = 'none';
