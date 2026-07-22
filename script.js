@@ -285,6 +285,7 @@
       if (heading === null) return;
       sensorDetectado = true;
       lastRawHeading = heading;
+      lastSensorEventTime = Date.now();
       updateCompassRose(heading);
 
       // Si el mensaje de "sin brújula" quedó mostrado por error (falso negativo previo),
@@ -305,6 +306,14 @@
         tiltDetectado = true;
         document.getElementById('noTilt').style.display = 'none';
         updateInclinometerNew(tilt);
+      }
+
+      // Segundo eje del inclinómetro: nivel lateral (izquierda/derecha), aparte
+      // de la elevación (adelante/atrás). Sirve para notar si el plato quedó
+      // "torcido" hacia un costado y no solo mal apuntado en elevación.
+      const roll = (typeof e.gamma === 'number') ? e.gamma : null;
+      if (roll !== null) {
+        updateLateralLevel(roll);
       }
 
       if (capturing) {
@@ -378,8 +387,11 @@
         } else {
           reachedEl = false;
           barElEl.style.background = '#ff9f5a';
-          const dirEl = remainingEl < 0 ? 'bajar' : 'subir';
-          statusElEl.textContent = `Faltan ${Math.abs(remainingEl).toFixed(1)}° más para ${dirEl}`;
+          if (remainingEl < 0) {
+            statusElEl.textContent = '↓ Bajá el plato';
+          } else {
+            statusElEl.textContent = `Faltan ${Math.abs(remainingEl).toFixed(1)}° más para subir`;
+          }
           statusElEl.style.color = '#8a96ab';
         }
       }
@@ -490,11 +502,73 @@
       } else {
         barEl.style.width = Math.max(0, 100 - remainingAbs * 5) + '%';
         barEl.style.background = '#ff9f5a';
-        const dir = diff > 0 ? 'subir' : 'bajar';
-        statusEl.textContent = `Faltan ${remainingAbs.toFixed(1)}° más para ${dir}`;
+        if (diff > 0) {
+          statusEl.textContent = `Faltan ${remainingAbs.toFixed(1)}° más para subir`;
+        } else {
+          statusEl.textContent = '↓ Bajá el plato';
+        }
         statusEl.style.color = '#8a96ab';
       }
     }
+
+    // Nivel lateral (roll / e.gamma): cuánto está el celular -y por lo tanto el
+    // plato- inclinado hacia la izquierda o la derecha, además de la elevación
+    // (adelante/atrás). Es un eje independiente y se muestra en ambos modos.
+    function describeLateralLevel(gammaDeg) {
+      const abs = Math.abs(gammaDeg);
+      if (abs < 2) return { text: '🟢 Nivelado', color: '#4fd1a5' };
+      const dir = gammaDeg > 0 ? 'derecha' : 'izquierda';
+      return { text: `Inclinado ${abs.toFixed(1)}° hacia la ${dir}`, color: '#ff9f5a' };
+    }
+
+    function updateLateralLevel(gammaDeg) {
+      const desc = describeLateralLevel(gammaDeg);
+
+      const rowNew = document.getElementById('tiltAxesNew');
+      const valNew = document.getElementById('tiltGammaTextNew');
+      if (rowNew && valNew) {
+        rowNew.style.display = 'block';
+        valNew.textContent = desc.text;
+        valNew.style.color = desc.color;
+      }
+
+      const rowLive = document.getElementById('tiltAxesLive');
+      const valLive = document.getElementById('tiltGammaTextLive');
+      if (rowLive && valLive) {
+        rowLive.style.display = 'block';
+        valLive.textContent = desc.text;
+        valLive.style.color = desc.color;
+      }
+    }
+
+    // ---------- ¿Está leyendo bien? Chequeo de "sensor vivo" ----------
+    // No hay forma 100% segura de saber, solo con software, si los GRADOS que
+    // reporta el sensor son correctos (para eso hace falta una referencia física,
+    // ver nota más abajo). Pero sí podemos detectar un caso muy común y molesto:
+    // que el navegador haya dejado de mandar eventos 'deviceorientation' (pantalla
+    // bloqueada, pestaña en segundo plano, o el sensor colgado). Si pasa mucho
+    // tiempo sin una lectura nueva, avisamos.
+    let lastSensorEventTime = null;
+
+    function tickSensorHealth() {
+      const healthNew = document.getElementById('tiltHealthNew');
+      const healthLive = document.getElementById('tiltHealthLive');
+      if (!healthNew && !healthLive) return;
+      if (!listening || lastSensorEventTime === null) return;
+
+      const elapsedMs = Date.now() - lastSensorEventTime;
+      let msg, color;
+      if (elapsedMs > 2500) {
+        msg = `⚠ Sin lecturas nuevas hace ${(elapsedMs / 1000).toFixed(0)}s. Probá mover el celular; si no cambia nada, cerrá y volvé a abrir la pestaña.`;
+        color = '#ff9f5a';
+      } else {
+        msg = '🟢 Sensor enviando datos con normalidad';
+        color = '#4fd1a5';
+      }
+      if (healthNew) { healthNew.textContent = msg; healthNew.style.color = color; }
+      if (healthLive) { healthLive.textContent = msg; healthLive.style.color = color; }
+    }
+    setInterval(tickSensorHealth, 1000);
 
     // Chequea si hay brújula disponible. En iOS (donde hace falta pedir permiso con
     // un gesto del usuario) NO podemos detectarlo automáticamente: dejamos el botón

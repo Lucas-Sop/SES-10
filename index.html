@@ -212,6 +212,15 @@
           <div class="live-status" id="liveStatusEl">Empezá a mover la elevación del plato</div>
         </div>
 
+        <div class="sensor-heading" id="tiltAxesLive" style="display:none">
+          <div class="label">nivel lateral (izquierda / derecha)</div>
+          <div class="live-status" id="tiltGammaTextLive" style="font-size:17px">–</div>
+          <p class="note" style="margin-top:8px">Además de la elevación (adelante/atrás), esto mide si el plato
+            quedó torcido hacia un costado. Buscá que diga "Nivelado".</p>
+        </div>
+
+        <p class="note" id="tiltHealthLive" style="margin-top:12px"></p>
+
         <div id="noTilt" class="warn-box" style="display:none">
           ❌ Este dispositivo no tiene sensor de inclinación (acelerómetro) o el navegador no permite acceder a él.
         </div>
@@ -401,6 +410,15 @@
             </div>
             <div class="live-status" id="tiltStatusNew"></div>
           </div>
+
+          <div class="sensor-heading" id="tiltAxesNew" style="display:none">
+            <div class="label">nivel lateral (izquierda / derecha)</div>
+            <div class="live-status" id="tiltGammaTextNew" style="font-size:17px">–</div>
+            <p class="note" style="margin-top:8px">Además de la elevación (adelante/atrás), esto mide si el plato
+              quedó torcido hacia un costado. Buscá que diga "Nivelado".</p>
+          </div>
+
+          <p class="note" id="tiltHealthNew" style="margin-top:12px"></p>
 
           <div id="noTilt2" class="warn-box" style="display:none">
             ❌ Este dispositivo no tiene sensor de inclinación (acelerómetro) o el navegador no permite acceder a él.
