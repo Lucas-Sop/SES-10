@@ -197,26 +197,27 @@
     <div class="tab-panel" id="tab-inclinometro">
 
       <div class="compass-card" id="inclinometerCardLive">
-        <p class="section-title" style="text-align:left">Inclinómetro (elevación)</p>
-        <p class="section-sub" style="text-align:left">Primero tocá "Marcar" en la pestaña "Ajuste en vivo" con el
-          celular apoyado bien plano contra la cara del plato (o el brazo del LNB). El inclinómetro usa esa misma
-          marca como referencia y te va guiando cuánto subir o bajar el plato.</p>
+        <p class="section-title" style="text-align:left">Inclinómetro (elevación y nivel)</p>
+        <p class="note" style="text-align:left">Primero tocá "Marcar" en la pestaña "Ajuste en vivo". El
+          inclinómetro usa esa marca como referencia.</p>
+
+        <div class="bubble-wrap" id="bubbleWrapLive"></div>
 
         <div class="live-target" id="liveTargetEl"></div>
 
         <div id="liveBoxEl" style="display:none">
-          <div class="live-big" id="liveMovedEl">0.0°</div>
-          <div class="bar-track">
-            <div class="bar-fill" id="liveBarEl"></div>
-          </div>
           <div class="live-status" id="liveStatusEl">Empezá a mover la elevación del plato</div>
         </div>
 
-        <div class="sensor-heading" id="tiltAxesLive" style="display:none">
-          <div class="label">nivel lateral (izquierda / derecha)</div>
-          <div class="live-status" id="tiltGammaTextLive" style="font-size:17px">–</div>
-          <p class="note" style="margin-top:8px">Además de la elevación (adelante/atrás), esto mide si el plato
-            quedó torcido hacia un costado. Buscá que diga "Nivelado".</p>
+        <div class="bubble-readout">
+          <div class="bubble-readout-item">
+            <div class="label">Movido</div>
+            <div class="live-status" id="liveMovedEl">0.0°</div>
+          </div>
+          <div class="bubble-readout-item">
+            <div class="label">Nivel lateral</div>
+            <div class="live-status" id="tiltGammaTextLive">–°</div>
+          </div>
         </div>
 
         <p class="note" id="tiltHealthLive" style="margin-top:12px"></p>
@@ -396,27 +397,24 @@
       <div class="tab-panel" id="tab-inclinometroNueva">
 
         <div class="compass-card" id="inclinometerCardNew">
-          <p class="section-title" style="text-align:left">Inclinómetro (elevación)</p>
-          <p class="section-sub" style="text-align:left">Apoyá el celular plano contra la cara del plato (o el
-            brazo del LNB), con el borde superior del celular apuntando hacia el cielo. El inclinómetro estima la
-            elevación actual del plato y te dice cuánto falta para llegar a la de SES-10.</p>
+          <p class="section-title" style="text-align:left">Inclinómetro (elevación y nivel)</p>
 
-          <div class="live-big" id="tiltHeadingText">–°</div>
-          <div class="note" id="tiltTargetNote">Calculá primero en "Ubicación" para ver la elevación de SES-10.</div>
+          <div class="bubble-wrap" id="bubbleWrapNew"></div>
 
-          <div id="tiltBoxNew" style="display:none">
-            <div class="bar-track">
-              <div class="bar-fill" id="tiltBarNew"></div>
+          <div class="live-status" id="tiltStatusNew" style="text-align:center;margin-top:6px"></div>
+
+          <div class="bubble-readout">
+            <div class="bubble-readout-item">
+              <div class="label">Elevación actual</div>
+              <div class="live-status" id="tiltHeadingText">–°</div>
             </div>
-            <div class="live-status" id="tiltStatusNew"></div>
+            <div class="bubble-readout-item">
+              <div class="label">Nivel lateral</div>
+              <div class="live-status" id="tiltGammaTextNew">–°</div>
+            </div>
           </div>
 
-          <div class="sensor-heading" id="tiltAxesNew" style="display:none">
-            <div class="label">nivel lateral (izquierda / derecha)</div>
-            <div class="live-status" id="tiltGammaTextNew" style="font-size:17px">–</div>
-            <p class="note" style="margin-top:8px">Además de la elevación (adelante/atrás), esto mide si el plato
-              quedó torcido hacia un costado. Buscá que diga "Nivelado".</p>
-          </div>
+          <div class="note" id="tiltTargetNote">Calculá primero en "Ubicación" para ver la elevación de SES-10.</div>
 
           <p class="note" id="tiltHealthNew" style="margin-top:12px"></p>
 

@@ -578,6 +578,50 @@
       transition: transform .1s linear;
     }
 
+    /* ---------- Inclinómetro: burbuja de nivel en 3D (2 ejes) ---------- */
+    .bubble-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 4px 0 10px;
+    }
+
+    .bubble-svg {
+      width: 220px;
+      height: 220px;
+    }
+
+    .bubble-ball {
+      transition: transform .12s linear;
+    }
+
+    .bubble-readout {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .bubble-readout-item {
+      flex: 1;
+      text-align: center;
+      background: #0d1526;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 6px;
+    }
+
+    .bubble-readout-item .label {
+      font-size: 10.5px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+
+    .bubble-readout-item .live-status {
+      font-size: 17px;
+      min-height: auto;
+    }
+
     #setNorthBtn {
       width: 100%;
     }

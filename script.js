@@ -299,21 +299,17 @@
       document.getElementById('dotMag').classList.add('active');
       document.getElementById('sensorHeading').textContent = Math.round(heading) + '°';
 
-      // Inclinación (elevación). No todos los dispositivos entregan beta, así que
-      // lo tratamos como opcional en todo momento.
+      // Inclinación (elevación) y giro lateral (nivel), para el inclinómetro
+      // de 2 ejes. No todos los dispositivos entregan beta/gamma, así que se
+      // tratan como opcionales en todo momento.
       const tilt = (typeof e.beta === 'number') ? e.beta : null;
+      const roll = (typeof e.gamma === 'number') ? e.gamma : null;
+      if (roll !== null) lastGammaDeg = roll;
+
       if (tilt !== null) {
         tiltDetectado = true;
         document.getElementById('noTilt').style.display = 'none';
-        updateInclinometerNew(tilt);
-      }
-
-      // Segundo eje del inclinómetro: nivel lateral (izquierda/derecha), aparte
-      // de la elevación (adelante/atrás). Sirve para notar si el plato quedó
-      // "torcido" hacia un costado y no solo mal apuntado en elevación.
-      const roll = (typeof e.gamma === 'number') ? e.gamma : null;
-      if (roll !== null) {
-        updateLateralLevel(roll);
+        updateInclinometerNew(tilt, roll);
       }
 
       if (capturing) {
@@ -360,24 +356,21 @@
         statusEl.style.color = '#8a96ab';
       }
 
-      // --- Barra de elevación en vivo (inclinómetro), misma lógica que el azimut ---
+      // --- Inclinómetro en vivo (burbuja de 2 ejes), misma lógica que el azimut ---
       if (startTiltEl !== null && targetElDiff !== null && tilt !== null) {
         // El celular apoyado contra el plato: al SUBIR la elevación, beta disminuye.
         const movedElAmount = startTiltEl - tilt;      // + = subió, - = bajó
         const remainingEl = targetElDiff - movedElAmount;
 
         const movedElText = document.getElementById('liveMovedEl');
-        const barElEl = document.getElementById('liveBarEl');
         const statusElEl = document.getElementById('liveStatusEl');
 
         movedElText.textContent = Math.abs(movedElAmount).toFixed(1) + '° ' +
           (movedElAmount < 0 ? '↓ bajó' : movedElAmount > 0 ? '↑ subió' : '');
 
-        const pctEl = targetElDiff !== 0 ? Math.max(0, Math.min(100, (movedElAmount / targetElDiff) * 100)) : 0;
-        barElEl.style.width = pctEl + '%';
+        updateBubble('Live', remainingEl, roll !== null ? roll : lastGammaDeg, true);
 
         if (Math.abs(remainingEl) < 1) {
-          barElEl.style.background = '#4fd1a5';
           statusElEl.textContent = '✅ ¡Llegaste a la elevación de SES-10!';
           statusElEl.style.color = '#4fd1a5';
           if (!reachedEl) {
@@ -386,7 +379,6 @@
           }
         } else {
           reachedEl = false;
-          barElEl.style.background = '#ff9f5a';
           if (remainingEl < 0) {
             statusElEl.textContent = '↓ Bajá el plato';
           } else {
@@ -394,6 +386,10 @@
           }
           statusElEl.style.color = '#8a96ab';
         }
+      } else if (roll !== null) {
+        // Todavía no se marcó una referencia (o no hay lectura de inclinación):
+        // igual mostramos el nivel lateral en la burbuja, solo en el eje izq/der.
+        updateBubble('Live', 0, roll, false);
       }
     }
 
@@ -471,8 +467,8 @@
     }
 
     // Inclinómetro absoluto (modo Apuntar nueva antena): muestra la elevación estimada
-    // del plato y cuánto falta para llegar a la de SES-10.
-    function updateInclinometerNew(betaDeg) {
+    // del plato, el nivel lateral, y cuánto falta para llegar a la de SES-10.
+    function updateInclinometerNew(betaDeg, gammaDeg) {
       const headingText = document.getElementById('tiltHeadingText');
       if (!headingText) return;
 
@@ -481,63 +477,126 @@
       headingText.textContent = elCurrent.toFixed(1) + '°';
       document.getElementById('noTilt2').style.display = 'none';
 
-      if (targetElNew === null) return;
-
-      const box = document.getElementById('tiltBoxNew');
-      const barEl = document.getElementById('tiltBarNew');
       const statusEl = document.getElementById('tiltStatusNew');
-      box.style.display = 'block';
+      const hasTarget = targetElNew !== null;
+      const diff = hasTarget ? (targetElNew - elCurrent) : 0; // + = falta subir, - = falta bajar
 
-      const diff = targetElNew - elCurrent; // + = falta subir, - = falta bajar
+      updateBubble('New', diff, gammaDeg !== null ? gammaDeg : lastGammaDeg, hasTarget);
+
+      if (!hasTarget) {
+        statusEl.textContent = '';
+        return;
+      }
+
       const remainingAbs = Math.abs(diff);
 
       document.getElementById('tiltTargetNote').innerHTML =
         `SES-10 está a <b>${targetElNew.toFixed(2)}°</b> de elevación desde este punto.`;
 
       if (remainingAbs < 1) {
-        barEl.style.width = '100%';
-        barEl.style.background = '#4fd1a5';
         statusEl.textContent = '✅ ¡Llegaste a la elevación de SES-10!';
         statusEl.style.color = '#4fd1a5';
+      } else if (diff > 0) {
+        statusEl.textContent = `Faltan ${remainingAbs.toFixed(1)}° más para subir`;
+        statusEl.style.color = '#8a96ab';
       } else {
-        barEl.style.width = Math.max(0, 100 - remainingAbs * 5) + '%';
-        barEl.style.background = '#ff9f5a';
-        if (diff > 0) {
-          statusEl.textContent = `Faltan ${remainingAbs.toFixed(1)}° más para subir`;
-        } else {
-          statusEl.textContent = '↓ Bajá el plato';
-        }
+        statusEl.textContent = '↓ Bajá el plato';
         statusEl.style.color = '#8a96ab';
       }
     }
 
-    // Nivel lateral (roll / e.gamma): cuánto está el celular -y por lo tanto el
-    // plato- inclinado hacia la izquierda o la derecha, además de la elevación
-    // (adelante/atrás). Es un eje independiente y se muestra en ambos modos.
-    function describeLateralLevel(gammaDeg) {
-      const abs = Math.abs(gammaDeg);
-      if (abs < 2) return { text: '🟢 Nivelado', color: '#4fd1a5' };
-      const dir = gammaDeg > 0 ? 'derecha' : 'izquierda';
-      return { text: `Inclinado ${abs.toFixed(1)}° hacia la ${dir}`, color: '#ff9f5a' };
+    // ---------- Inclinómetro de burbuja en 3D (2 ejes: elevación + nivel lateral) ----------
+    // Reemplaza a las barras/textos sueltos de antes por un único indicador tipo
+    // "burbuja de nivel": una bolita con look 3D (degradé + sombra) que se corre
+    // dentro de un círculo. El eje vertical (arriba/abajo) marca cuánto falta subir
+    // o bajar en elevación; el eje horizontal (izq/der) marca si el plato está
+    // torcido hacia un costado. Cuando ambos ejes están dentro de tolerancia, la
+    // bolita se pone verde.
+    let lastGammaDeg = null;
+
+    function buildBubbleSvg(suffix) {
+      return `
+        <svg viewBox="0 0 200 200" class="bubble-svg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="trackGrad${suffix}" cx="50%" cy="38%" r="75%">
+              <stop offset="0%" stop-color="#182338"/>
+              <stop offset="100%" stop-color="#080c16"/>
+            </radialGradient>
+            <radialGradient id="ballGood${suffix}" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#eafff6"/>
+              <stop offset="45%" stop-color="#6fe0b8"/>
+              <stop offset="100%" stop-color="#1c8a67"/>
+            </radialGradient>
+            <radialGradient id="ballWarn${suffix}" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#fff3e6"/>
+              <stop offset="45%" stop-color="#ffb066"/>
+              <stop offset="100%" stop-color="#c9601a"/>
+            </radialGradient>
+            <filter id="ballShadow${suffix}" x="-60%" y="-60%" width="220%" height="220%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#000" flood-opacity="0.55"/>
+            </filter>
+          </defs>
+
+          <circle cx="100" cy="100" r="92" fill="url(#trackGrad${suffix})" stroke="#25334d" stroke-width="2"></circle>
+          <circle cx="100" cy="100" r="62" fill="none" stroke="#1a2540" stroke-width="1" stroke-dasharray="3 5"></circle>
+          <circle cx="100" cy="100" r="30" fill="none" stroke="#324062" stroke-width="1.5" stroke-dasharray="2 3"></circle>
+          <line x1="100" y1="12" x2="100" y2="188" stroke="#1a2540" stroke-width="1"></line>
+          <line x1="12" y1="100" x2="188" y2="100" stroke="#1a2540" stroke-width="1"></line>
+
+          <text x="100" y="21" text-anchor="middle" font-size="9.5" fill="#8a96ab" font-family="sans-serif" font-weight="700">ARRIBA</text>
+          <text x="100" y="193" text-anchor="middle" font-size="9.5" fill="#8a96ab" font-family="sans-serif" font-weight="700">ABAJO</text>
+          <text x="24" y="104" text-anchor="middle" font-size="9.5" fill="#8a96ab" font-family="sans-serif" font-weight="700">IZQ</text>
+          <text x="176" y="104" text-anchor="middle" font-size="9.5" fill="#8a96ab" font-family="sans-serif" font-weight="700">DER</text>
+
+          <g id="bubbleBall${suffix}" class="bubble-ball" filter="url(#ballShadow${suffix})">
+            <circle id="bubbleFill${suffix}" cx="100" cy="100" r="15" fill="url(#ballWarn${suffix})" stroke="#0a0f1c" stroke-width="1"></circle>
+            <ellipse cx="95" cy="94" rx="4.5" ry="2.8" fill="#ffffff" opacity="0.75"></ellipse>
+          </g>
+        </svg>
+      `;
     }
 
-    function updateLateralLevel(gammaDeg) {
-      const desc = describeLateralLevel(gammaDeg);
+    (function initBubbles() {
+      const wrapNew = document.getElementById('bubbleWrapNew');
+      const wrapLive = document.getElementById('bubbleWrapLive');
+      if (wrapNew) wrapNew.innerHTML = buildBubbleSvg('New');
+      if (wrapLive) wrapLive.innerHTML = buildBubbleSvg('Live');
+    })();
 
-      const rowNew = document.getElementById('tiltAxesNew');
-      const valNew = document.getElementById('tiltGammaTextNew');
-      if (rowNew && valNew) {
-        rowNew.style.display = 'block';
-        valNew.textContent = desc.text;
-        valNew.style.color = desc.color;
+    // elevDiffDeg: grados que faltan en elevación (+ = falta subir, - = falta bajar).
+    // gammaDeg: inclinación lateral actual del celular (+ = hacia la derecha).
+    // hasElevAxis: si hay un objetivo de elevación calculado; si no, la bolita
+    // solo se mueve en el eje izquierda/derecha.
+    function updateBubble(suffix, elevDiffDeg, gammaDeg, hasElevAxis) {
+      const ball = document.getElementById('bubbleBall' + suffix);
+      const fill = document.getElementById('bubbleFill' + suffix);
+      if (!ball) return;
+
+      const maxDeg = 8;  // grados de desvío que llevan la bolita al borde del círculo
+      const maxPx = 62;  // radio máximo de desplazamiento dentro del círculo
+
+      const g = (typeof gammaDeg === 'number') ? gammaDeg : 0;
+      const clampedGamma = Math.max(-maxDeg, Math.min(maxDeg, g));
+      const dx = (clampedGamma / maxDeg) * maxPx;
+
+      let dy = 0;
+      if (hasElevAxis) {
+        const clampedElev = Math.max(-maxDeg, Math.min(maxDeg, elevDiffDeg));
+        dy = (clampedElev / maxDeg) * maxPx;
       }
 
-      const rowLive = document.getElementById('tiltAxesLive');
-      const valLive = document.getElementById('tiltGammaTextLive');
-      if (rowLive && valLive) {
-        rowLive.style.display = 'block';
-        valLive.textContent = desc.text;
-        valLive.style.color = desc.color;
+      ball.setAttribute('transform', `translate(${dx.toFixed(1)} ${dy.toFixed(1)})`);
+
+      const onTargetLateral = Math.abs(g) < 2;
+      const onTargetElev = !hasElevAxis || Math.abs(elevDiffDeg) < 1;
+      if (fill) {
+        fill.setAttribute('fill', `url(#${(onTargetLateral && onTargetElev) ? 'ballGood' : 'ballWarn'}${suffix})`);
+      }
+
+      const gammaText = document.getElementById('tiltGammaText' + suffix);
+      if (gammaText) {
+        gammaText.textContent = g.toFixed(1) + '°';
+        gammaText.style.color = onTargetLateral ? '#4fd1a5' : '#e8edf7';
       }
     }
 
