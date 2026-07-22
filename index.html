@@ -44,6 +44,7 @@
       <div class="tabs">
         <button class="tab-btn active" data-tab="calc"><span class="tab-icon">📍</span>Calculadora</button>
         <button class="tab-btn" data-tab="live"><span class="tab-icon">🧭</span>Ajuste en vivo</button>
+        <button class="tab-btn" data-tab="inclinometro"><span class="tab-icon">📐</span>Inclinómetro</button>
         <button class="tab-btn" data-tab="manual"><span class="tab-icon">📄</span>Manual</button>
       </div>
 
@@ -101,6 +102,7 @@
         </div>
 
         <button class="goto-btn" style="margin-top:14px" onclick="switchTab('live')">🧭 Ir al ajuste en vivo</button>
+        <button class="goto-btn" style="margin-top:8px" onclick="switchTab('inclinometro')">📐 Ir al inclinómetro</button>
       </div>
 
     </div>
@@ -191,6 +193,32 @@
 
     </div>
 
+    <!-- ===================== TAB: INCLINÓMETRO ===================== -->
+    <div class="tab-panel" id="tab-inclinometro">
+
+      <div class="compass-card" id="inclinometerCardLive">
+        <p class="section-title" style="text-align:left">Inclinómetro (elevación)</p>
+        <p class="section-sub" style="text-align:left">Primero tocá "Marcar" en la pestaña "Ajuste en vivo" con el
+          celular apoyado bien plano contra la cara del plato (o el brazo del LNB). El inclinómetro usa esa misma
+          marca como referencia y te va guiando cuánto subir o bajar el plato.</p>
+
+        <div class="live-target" id="liveTargetEl"></div>
+
+        <div id="liveBoxEl" style="display:none">
+          <div class="live-big" id="liveMovedEl">0.0°</div>
+          <div class="bar-track">
+            <div class="bar-fill" id="liveBarEl"></div>
+          </div>
+          <div class="live-status" id="liveStatusEl">Empezá a mover la elevación del plato</div>
+        </div>
+
+        <div id="noTilt" class="warn-box" style="display:none">
+          ❌ Este dispositivo no tiene sensor de inclinación (acelerómetro) o el navegador no permite acceder a él.
+        </div>
+      </div>
+
+    </div>
+
     <!-- ===================== TAB: MANUAL ===================== -->
     <div class="tab-panel" id="tab-manual">
       <div class="card">
@@ -266,6 +294,7 @@
       <div class="tabs">
         <button class="tab-btn active" data-tab="ubicacion"><span class="tab-icon">📍</span>Ubicación</button>
         <button class="tab-btn" data-tab="brujula"><span class="tab-icon">🧭</span>Brújula</button>
+        <button class="tab-btn" data-tab="inclinometroNueva"><span class="tab-icon">📐</span>Inclinómetro</button>
         <button class="tab-btn" data-tab="manualNueva"><span class="tab-icon">📄</span>Manual</button>
       </div>
 
@@ -306,6 +335,7 @@
             </div>
           </div>
           <button class="goto-btn" style="margin-top:14px" onclick="switchTab('brujula')">🧭 Ir a la brújula</button>
+          <button class="goto-btn" style="margin-top:8px" onclick="switchTab('inclinometroNueva')">📐 Ir al inclinómetro</button>
         </div>
 
       </div>
@@ -348,6 +378,32 @@
 
           <div id="noCompass2" style="display:none">
             ❌ Este dispositivo no tiene brújula o el navegador no permite acceder al sensor de orientación.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===================== TAB: INCLINÓMETRO ===================== -->
+      <div class="tab-panel" id="tab-inclinometroNueva">
+
+        <div class="compass-card" id="inclinometerCardNew">
+          <p class="section-title" style="text-align:left">Inclinómetro (elevación)</p>
+          <p class="section-sub" style="text-align:left">Apoyá el celular plano contra la cara del plato (o el
+            brazo del LNB), con el borde superior del celular apuntando hacia el cielo. El inclinómetro estima la
+            elevación actual del plato y te dice cuánto falta para llegar a la de SES-10.</p>
+
+          <div class="live-big" id="tiltHeadingText">–°</div>
+          <div class="note" id="tiltTargetNote">Calculá primero en "Ubicación" para ver la elevación de SES-10.</div>
+
+          <div id="tiltBoxNew" style="display:none">
+            <div class="bar-track">
+              <div class="bar-fill" id="tiltBarNew"></div>
+            </div>
+            <div class="live-status" id="tiltStatusNew"></div>
+          </div>
+
+          <div id="noTilt2" class="warn-box" style="display:none">
+            ❌ Este dispositivo no tiene sensor de inclinación (acelerómetro) o el navegador no permite acceder a él.
           </div>
         </div>
 

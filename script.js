@@ -17,7 +17,7 @@
       // La pestaña de brújula normal necesita el sensor de orientación activo.
       // Pedimos permiso (si hace falta, iOS) en el mismo click que abre la pestaña,
       // porque el permiso solo se puede pedir a partir de un gesto del usuario.
-      if (name === 'brujula') {
+      if (name === 'brujula' || name === 'inclinometroNueva') {
         requestCompassPermission();
       }
       // Los mapas de Leaflet se inicializan a veces con el panel oculto (display:none),
@@ -179,6 +179,11 @@
       targetDiff = diffAz;
       const dirTxt = diffAz < 0 ? 'a la izquierda' : 'a la derecha';
       document.getElementById('liveTarget').innerHTML = `Objetivo: <b>${Math.abs(diffAz).toFixed(1)}°</b> ${dirTxt}`;
+
+      targetElDiff = diffEl;
+      const dirTxtEl = diffEl >= 0 ? 'subir' : 'bajar';
+      document.getElementById('liveTargetEl').innerHTML = `Objetivo: <b>${Math.abs(diffEl).toFixed(2)}°</b> ${dirTxtEl}`;
+
       resetLive();
       verificarBrujula();
     }
@@ -239,6 +244,12 @@
     let motionListening = false; // ya hay un listener de devicemotion activo (para giroscopio)
     let reached = false;
 
+    // --- Inclinómetro (elevación), modo Cambiar de satélite ---
+    let targetElDiff = null;  // grados de elevación objetivo, con signo (negativo = bajar)
+    let startTiltEl = null;   // referencia de inclinación tomada al tocar "Marcar"
+    let reachedEl = false;
+    let tiltDetectado = false; // llegó al menos una lectura con e.beta utilizable
+
     function resetLive() {
       startHeading = null;
       capturing = false;
@@ -246,6 +257,10 @@
       document.getElementById('liveBox').style.display = 'none';
       document.getElementById('markBtn').textContent = '📍 Marcar acá = Intelsat 23';
       document.getElementById('markBtn').classList.remove('marked');
+
+      startTiltEl = null;
+      reachedEl = false;
+      document.getElementById('liveBoxEl').style.display = 'none';
     }
 
     function rawHeading(e) {
@@ -283,12 +298,27 @@
       document.getElementById('dotMag').classList.add('active');
       document.getElementById('sensorHeading').textContent = Math.round(heading) + '°';
 
+      // Inclinación (elevación). No todos los dispositivos entregan beta, así que
+      // lo tratamos como opcional en todo momento.
+      const tilt = (typeof e.beta === 'number') ? e.beta : null;
+      if (tilt !== null) {
+        tiltDetectado = true;
+        document.getElementById('noTilt').style.display = 'none';
+        updateInclinometerNew(tilt);
+      }
+
       if (capturing) {
         startHeading = heading;
+        startTiltEl = tilt;
         capturing = false;
         document.getElementById('liveBox').style.display = 'block';
         document.getElementById('liveStatus').textContent = 'Listo, ahora mové el plato';
         document.getElementById('liveStatus').style.color = '#8a96ab';
+        if (tilt !== null) {
+          document.getElementById('liveBoxEl').style.display = 'block';
+          document.getElementById('liveStatusEl').textContent = 'Listo, ahora mové la elevación';
+          document.getElementById('liveStatusEl').style.color = '#8a96ab';
+        }
         return;
       }
       if (startHeading === null || targetDiff === null) return;
@@ -319,6 +349,39 @@
         const dir = remaining < 0 ? 'izquierda' : 'derecha';
         statusEl.textContent = `Faltan ${Math.abs(remaining).toFixed(0)}° más a la ${dir}`;
         statusEl.style.color = '#8a96ab';
+      }
+
+      // --- Barra de elevación en vivo (inclinómetro), misma lógica que el azimut ---
+      if (startTiltEl !== null && targetElDiff !== null && tilt !== null) {
+        // El celular apoyado contra el plato: al SUBIR la elevación, beta disminuye.
+        const movedElAmount = startTiltEl - tilt;      // + = subió, - = bajó
+        const remainingEl = targetElDiff - movedElAmount;
+
+        const movedElText = document.getElementById('liveMovedEl');
+        const barElEl = document.getElementById('liveBarEl');
+        const statusElEl = document.getElementById('liveStatusEl');
+
+        movedElText.textContent = Math.abs(movedElAmount).toFixed(1) + '° ' +
+          (movedElAmount < 0 ? '↓ bajó' : movedElAmount > 0 ? '↑ subió' : '');
+
+        const pctEl = targetElDiff !== 0 ? Math.max(0, Math.min(100, (movedElAmount / targetElDiff) * 100)) : 0;
+        barElEl.style.width = pctEl + '%';
+
+        if (Math.abs(remainingEl) < 1) {
+          barElEl.style.background = '#4fd1a5';
+          statusElEl.textContent = '✅ ¡Llegaste a la elevación de SES-10!';
+          statusElEl.style.color = '#4fd1a5';
+          if (!reachedEl) {
+            reachedEl = true;
+            if (navigator.vibrate) navigator.vibrate(200);
+          }
+        } else {
+          reachedEl = false;
+          barElEl.style.background = '#ff9f5a';
+          const dirEl = remainingEl < 0 ? 'bajar' : 'subir';
+          statusElEl.textContent = `Faltan ${Math.abs(remainingEl).toFixed(1)}° más para ${dirEl}`;
+          statusElEl.style.color = '#8a96ab';
+        }
       }
     }
 
@@ -369,6 +432,7 @@
             }
             noCompass2.style.display = 'none';
             ensureListening();
+            checkTiltNew();
           } else {
             noCompass2.textContent = '❌ Permiso denegado. Activalo desde los ajustes del navegador (Configuración → Safari → Acceso a Movimiento y Orientación).';
             noCompass2.style.display = 'block';
@@ -380,6 +444,55 @@
       } else {
         noCompass2.style.display = 'none';
         ensureListening();
+        checkTiltNew();
+      }
+    }
+
+    // Chequea si llegan lecturas de inclinación (e.beta) para el modo "Apuntar nueva antena".
+    function checkTiltNew() {
+      tiltDetectado = false;
+      setTimeout(() => {
+        if (!tiltDetectado) {
+          document.getElementById('noTilt2').style.display = 'block';
+        }
+      }, 2000);
+    }
+
+    // Inclinómetro absoluto (modo Apuntar nueva antena): muestra la elevación estimada
+    // del plato y cuánto falta para llegar a la de SES-10.
+    function updateInclinometerNew(betaDeg) {
+      const headingText = document.getElementById('tiltHeadingText');
+      if (!headingText) return;
+
+      // El celular apoyado plano contra la cara del plato: 90° = horizonte, 0° = cenit.
+      const elCurrent = 90 - betaDeg;
+      headingText.textContent = elCurrent.toFixed(1) + '°';
+      document.getElementById('noTilt2').style.display = 'none';
+
+      if (targetElNew === null) return;
+
+      const box = document.getElementById('tiltBoxNew');
+      const barEl = document.getElementById('tiltBarNew');
+      const statusEl = document.getElementById('tiltStatusNew');
+      box.style.display = 'block';
+
+      const diff = targetElNew - elCurrent; // + = falta subir, - = falta bajar
+      const remainingAbs = Math.abs(diff);
+
+      document.getElementById('tiltTargetNote').innerHTML =
+        `SES-10 está a <b>${targetElNew.toFixed(2)}°</b> de elevación desde este punto.`;
+
+      if (remainingAbs < 1) {
+        barEl.style.width = '100%';
+        barEl.style.background = '#4fd1a5';
+        statusEl.textContent = '✅ ¡Llegaste a la elevación de SES-10!';
+        statusEl.style.color = '#4fd1a5';
+      } else {
+        barEl.style.width = Math.max(0, 100 - remainingAbs * 5) + '%';
+        barEl.style.background = '#ff9f5a';
+        const dir = diff > 0 ? 'subir' : 'bajar';
+        statusEl.textContent = `Faltan ${remainingAbs.toFixed(1)}° más para ${dir}`;
+        statusEl.style.color = '#8a96ab';
       }
     }
 
@@ -406,11 +519,16 @@
       }
 
       sensorDetectado = false;
+      tiltDetectado = false;
       ensureListening();
       setTimeout(() => {
-        if (sensorDetectado) return;
-        markBtn.style.display = "none";
-        noCompass.style.display = "block";
+        if (!sensorDetectado) {
+          markBtn.style.display = "none";
+          noCompass.style.display = "block";
+        }
+        if (!tiltDetectado) {
+          document.getElementById('noTilt').style.display = 'block';
+        }
       }, 2000);
     }
 
@@ -428,12 +546,17 @@
 
         // Verificación real post-permiso: si en 2s no llegó ninguna lectura, no hay sensor.
         sensorDetectado = false;
+        tiltDetectado = false;
         setTimeout(() => {
-          if (sensorDetectado) return;
-          markBtn.style.display = 'none';
-          document.getElementById('liveBox').style.display = 'none';
-          noCompass.textContent = '❌ Este dispositivo no tiene brújula o no está enviando datos de orientación.';
-          noCompass.style.display = 'block';
+          if (!sensorDetectado) {
+            markBtn.style.display = 'none';
+            document.getElementById('liveBox').style.display = 'none';
+            noCompass.textContent = '❌ Este dispositivo no tiene brújula o no está enviando datos de orientación.';
+            noCompass.style.display = 'block';
+          }
+          if (!tiltDetectado) {
+            document.getElementById('noTilt').style.display = 'block';
+          }
         }, 2000);
       };
 
