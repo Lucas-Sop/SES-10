@@ -433,6 +433,38 @@
 
   </div>
 
+  <!-- Contador de visitas chiquito (solo lo ve el dueño; ver SHOW_TO_ALL) -->
+    <div id="gsa-cnt" hidden style="text-align:center;font-size:12px;color:var(--dim);opacity:.7;padding:6px 0 0"></div>
+    <script>
+    /* Cambiar NS por un texto al azar (distinto al de la otra pagina). */
+    (function(){
+      var NS='ses10-CAMBIAR-POR-TEXTO-AL-AZAR';
+      var SHOW_TO_ALL=false;   // true = lo ve todo el mundo; false = solo vos
+      var TZ='America/Argentina/Cordoba';
+      var day=new Date().toLocaleDateString('en-CA',{timeZone:TZ});
+      var owner=false, first=true;
+      try{
+        // Abri la pagina una vez con ?owner=1: te muestra el contador y no te cuenta.
+        if(/[?&]owner=1/.test(location.search)) localStorage.setItem('gsa-owner','1');
+        owner=!!localStorage.getItem('gsa-owner');
+        first=!sessionStorage.getItem('ses-ping');
+        if(!owner) sessionStorage.setItem('ses-ping','1');
+      }catch(e){}
+      var op=(!owner&&first)?'/up':'';   // suma 1 solo en la primera carga de cada visitante
+      var base='https://api.counterapi.dev/v1/'+NS+'/';
+      function hit(k){return fetch(base+k+op).then(function(r){return r.json()}).catch(function(){return null})}
+      Promise.all([hit('total'),hit(day)]).then(function(a){
+        if(!(owner||SHOW_TO_ALL)) return;
+        if(!a[0]&&!a[1]) return;
+        var el=document.getElementById('gsa-cnt');
+        el.textContent='Visitas: '+((a[0]&&a[0].count)||0)+' \u00b7 hoy: '+((a[1]&&a[1].count)||0);
+        el.hidden=false;
+      });
+    })();
+    </script>
+  </div> 
+
+  
   <script src="script.js"></script>
 </body>
 
